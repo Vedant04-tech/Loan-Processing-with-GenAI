@@ -1,9 +1,19 @@
+"""
+TRACE — Core Database Helper Functions
+Covers read/write operations for all 9 pipeline steps.
+"""
+
 from datetime import datetime
 from typing import Any, Optional
 from pymongo.database import Database
 
 
+# ─────────────────────────────────────────────────────────────
+# 1. APPLICATION & SUMMARY (Frontend & Decision Engine)
+# ─────────────────────────────────────────────────────────────
+
 def get_application_summary(db: Database, application_ref: str) -> dict | None:
+    """Fetches high-level applicant, risk, and financial summary for UI cards."""
     doc = db.applications.find_one({"application_ref": application_ref})
     if not doc:
         return None
@@ -40,6 +50,7 @@ def get_application_summary(db: Database, application_ref: str) -> dict | None:
 
 
 def update_routing(db: Database, application_ref: str, color: str, reason: str):
+    """Step 8: Update final routing outcome (Green / Amber / Red)."""
     status = "approved" if color == "green" else ("review" if color == "amber" else "rejected")
     return db.applications.update_one(
         {"application_ref": application_ref},
@@ -48,18 +59,25 @@ def update_routing(db: Database, application_ref: str, color: str, reason: str):
 
 
 def update_risk(db: Database, application_ref: str, score: float, grade: str, recommendation: str, factors: dict):
+    """Step 5.5: Save calculated risk score and factors."""
     return db.applications.update_one(
         {"application_ref": application_ref},
         {"$set": {"risk": {"score": score, "grade": grade, "recommendation": recommendation, "factors": factors}, "updated_at": datetime.utcnow()}}
     )
 
 
+# ─────────────────────────────────────────────────────────────
+# 2. EVIDENCE & TRACEABILITY (Core Trace USP)
+# ─────────────────────────────────────────────────────────────
+
 def insert_extracted_fields(db: Database, fields: list[dict]):
+    """Step 4: Save AI-extracted fields with page numbers & bounding boxes."""
     if fields:
         return db.extracted_fields.insert_many(fields)
 
 
 def get_extracted_evidence(db: Database, application_ref: str) -> list[dict]:
+    """Fetches extracted fields with bounding box evidence for click-to-source UI."""
     cursor = db.extracted_fields.find({"application_ref": application_ref}).sort("created_at", 1)
     results = []
     for f in cursor:
@@ -79,12 +97,18 @@ def get_extracted_evidence(db: Database, application_ref: str) -> list[dict]:
     return results
 
 
+# ─────────────────────────────────────────────────────────────
+# 3. BANK TRANSACTIONS & SPENDING
+# ─────────────────────────────────────────────────────────────
+
 def insert_bank_transactions(db: Database, txns: list[dict]):
+    """Step 6: Save parsed transaction rows."""
     if txns:
         return db.bank_transactions.insert_many(txns)
 
 
 def get_bank_transactions(db: Database, application_ref: str, category: str | None = None) -> list[dict]:
+    """Fetches bank statement transactions."""
     query: dict[str, Any] = {"application_ref": application_ref}
     if category:
         query["category"] = category
@@ -93,6 +117,7 @@ def get_bank_transactions(db: Database, application_ref: str, category: str | No
 
 
 def get_spending_summary(db: Database, application_ref: str) -> dict:
+    """Aggregates spending breakdown (UPI, Rent, POS, ATM)."""
     pipeline = [
         {"$match": {"application_ref": application_ref, "txn_type": "debit"}},
         {"$group": {"_id": "$category", "total": {"$sum": "$amount"}, "count": {"$sum": 1}}},
@@ -102,6 +127,7 @@ def get_spending_summary(db: Database, application_ref: str) -> dict:
 
 
 def get_bank_statement_summary(db: Database, application_ref: str) -> dict:
+    """Step 7: Fetches summary metrics for statement arithmetic verification."""
     fields = db.extracted_fields.find({
         "application_ref": application_ref,
         "doc_type": "BANK_STATEMENT",
@@ -110,7 +136,12 @@ def get_bank_statement_summary(db: Database, application_ref: str) -> dict:
     return {f["field_name"]: f.get("numeric_value") or f.get("field_value") for f in fields}
 
 
+# ─────────────────────────────────────────────────────────────
+# 4. CROSS-DOCUMENT CHECKS & ENTITY GRAPH
+# ─────────────────────────────────────────────────────────────
+
 def add_cross_check(db: Database, application_ref: str, check_data: dict):
+    """Step 7: Appends a declared vs verified comparison check."""
     return db.applications.update_one(
         {"application_ref": application_ref},
         {"$push": {"cross_checks": check_data}, "$set": {"updated_at": datetime.utcnow()}}
@@ -118,11 +149,13 @@ def add_cross_check(db: Database, application_ref: str, check_data: dict):
 
 
 def get_cross_check_results(db: Database, application_ref: str) -> list[dict]:
+    """Fetches all comparison check results for discrepancy tables."""
     doc = db.applications.find_one({"application_ref": application_ref}, {"cross_checks": 1})
     return (doc.get("cross_checks") or []) if doc else []
 
 
 def get_entity_graph(db: Database, application_ref: str) -> list[dict]:
+    """Fetches nodes & edges for applicant relationship graph visualization."""
     doc = db.applications.find_one({"application_ref": application_ref}, {"entity_graph": 1})
     if not doc:
         return []
@@ -139,7 +172,12 @@ def get_entity_graph(db: Database, application_ref: str) -> list[dict]:
     ]
 
 
+# ─────────────────────────────────────────────────────────────
+# 5. AUDIT LOGS & RAG POLICY
+# ─────────────────────────────────────────────────────────────
+
 def log_audit_event(db: Database, application_ref: str, actor: str, action: str, detail: dict | None = None):
+    """Step 9: Append an immutable event to the audit trail."""
     return db.audit_logs.insert_one({
         "application_ref": application_ref,
         "actor": actor,
@@ -150,16 +188,19 @@ def log_audit_event(db: Database, application_ref: str, actor: str, action: str,
 
 
 def get_audit_trail(db: Database, application_ref: str) -> list[dict]:
+    """Fetches full timeline of events for compliance/auditors."""
     cursor = db.audit_logs.find({"application_ref": application_ref}).sort("created_at", 1)
     return [{k: v for k, v in doc.items() if k != "_id"} for doc in cursor]
 
 
 def insert_policy_embeddings_bulk(db: Database, embeddings: list[dict]):
+    """Inserts lender policy document chunks for RAG."""
     if embeddings:
         return db.policy_embeddings.insert_many(embeddings)
 
 
 def search_policy_chunks(db: Database, loan_type: str | None = None, text_search: str | None = None, limit: int = 10) -> list[dict]:
+    """Searches policy chunks by text / loan type."""
     query: dict[str, Any] = {}
     if loan_type:
         query["loan_type"] = loan_type

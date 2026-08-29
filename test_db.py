@@ -1,8 +1,3 @@
-"""
-TRACE — Simple Database Smoke Test
-Runs a quick check on Atlas connection and queries.
-"""
-
 from db_config import check_health, get_db
 from crud import (
     get_application_summary,
@@ -13,57 +8,52 @@ from crud import (
     get_spending_summary,
 )
 
-def run():
-    print("=" * 50)
-    print("  TRACE Database Smoke Test")
-    print("=" * 50)
 
-    # 1. Health Check
+def run():
+    print("----------------------------------------")
+    print("TRACE Database Connection & Query Test")
+    print("----------------------------------------")
+
     health = check_health()
     if health["status"] != "connected":
-        print(f"❌ Connection Failed: {health.get('message')}")
-        print("💡 Ensure you whitelisted IP in MongoDB Atlas (0.0.0.0/0).")
+        print(f"Connection failed: {health.get('message')}")
+        print("Check if your IP is whitelisted in MongoDB Atlas Network Access.")
         return
-    print(f"✅ MongoDB Atlas Connected! (Database: {health.get('database')})")
 
+    print(f"MongoDB Atlas Status: Connected (DB: {health.get('database')})")
     db = get_db()
-    
-    # 2. Check Applications in DB
+
     app = db.applications.find_one({}, {"application_ref": 1})
     if not app:
-        print("⚠️ No data in database yet.")
-        print("👉 Run: python import_data.py")
+        print("No applications found in database. Run 'python import_data.py' first.")
         return
 
     ref = app["application_ref"]
-    print(f"\n📂 Testing Sample Application: {ref}")
+    print(f"\nQuerying Application: {ref}")
 
-    # Summary
     summary = get_application_summary(db, ref)
     if summary:
-        print(f"   👤 Applicant: {summary.get('full_name')} ({summary.get('employer_name')})")
-        print(f"   💰 Verified Monthly Income: ₹{summary.get('verified_monthly_income', 0):,.2f}")
-        print(f"   🚦 Routing Decision: {summary.get('routing_color') or 'Pending'}")
+        print(f"  Applicant: {summary.get('full_name')} ({summary.get('employer_name')})")
+        print(f"  Verified Monthly Income: Rs. {summary.get('verified_monthly_income', 0):,.2f}")
+        print(f"  Routing Status: {summary.get('routing_color') or 'Pending'}")
 
-    # Evidence Count
     evidence = get_extracted_evidence(db, ref)
-    print(f"   🔍 Extracted Evidence Fields: {len(evidence)} fields (with bounding boxes)")
+    print(f"  Extracted Evidence Records: {len(evidence)}")
 
-    # Transactions & Spending
     txns = get_bank_transactions(db, ref)
     spending = get_spending_summary(db, ref)
-    print(f"   🏦 Bank Transactions: {len(txns)} rows")
+    print(f"  Bank Transactions: {len(txns)}")
     if spending:
         top_cat = list(spending.keys())[0]
-        print(f"   📊 Top Debit Category: {top_cat} (₹{spending[top_cat]['total']:,.2f})")
+        print(f"  Top Debit Category: {top_cat} (Rs. {spending[top_cat]['total']:,.2f})")
 
-    # Cross Checks & Graph
     checks = get_cross_check_results(db, ref)
     graph = get_entity_graph(db, ref)
-    print(f"   ⚖️ Cross-Document Checks: {len(checks)} checks")
-    print(f"   🕸️ Entity Graph Edges: {len(graph)} connections")
+    print(f"  Cross-Document Checks: {len(checks)}")
+    print(f"  Entity Graph Edges: {len(graph)}")
 
-    print("\n🎉 All 5 collections tested and operational!\n")
+    print("\nDatabase verification complete.")
+
 
 if __name__ == "__main__":
     run()

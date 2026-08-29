@@ -1,66 +1,131 @@
-# 🗄️ TRACE — MongoDB Data Layer
+# TRACE - Database Layer
 
-A clean, document-oriented data storage layer for the **TRACE GenAI Loan Document Processing** platform, connected to **MongoDB Atlas**.
-
----
-
-## 📁 5 Core Files
-
-```
-├── db_config.py      # Atlas connection & database client (20 lines)
-├── models.py         # Data schemas for all 5 collections
-├── crud.py           # Core read/write helper functions for the pipeline & frontend
-├── import_data.py    # Loads sample loan applications into MongoDB Atlas
-└── test_db.py        # 1-command verification script
-```
+MongoDB data storage layer for the TRACE loan document processing platform.
 
 ---
 
-## 🗃️ 5 MongoDB Collections
+## Project Structure
 
-1. **`applications`** (Master document): Stores applicant profiles, uploaded documents metadata, financial metrics, risk scores, cross-check comparisons, and entity relationship graph.
-2. **`extracted_fields`** (Traceability USP): Stores each extracted value with its **page number, quoted text, and bounding box coordinates** for click-to-source proof.
-3. **`bank_transactions`**: Categorized statement rows (`salary_credit`, `emi_debit`, `upi_spend`, `rent_debit`, etc.).
-4. **`audit_logs`**: Immutable, append-only history of pipeline events.
-5. **`policy_embeddings`**: Text chunks of lender underwriting guidelines for RAG.
+- `db_config.py` - MongoDB client and connection handling.
+- `models.py` - Pydantic data schemas for collections.
+- `crud.py` - Helper functions for reading and writing data across pipeline steps.
+- `import_data.py` - Ingestion and sample data loader.
+- `test_db.py` - Script to verify database connectivity and basic queries.
 
 ---
 
-## 🚀 How to Run & Verify
+## Collections
 
+1. `applications`: Stores application details, applicant info, uploaded document metadata, financial metrics, risk assessment, cross-check comparisons, and entity relationship graphs.
+2. `extracted_fields`: Stores individual extracted key-value pairs along with page numbers, quoted text, and bounding box coordinates for source verification.
+3. `bank_transactions`: Stores parsed transaction rows categorized into salary credits, EMI debits, rent, UPI spends, etc.
+4. `audit_logs`: Append-only event history tracking pipeline execution.
+5. `policy_embeddings`: Text chunks of lender underwriting guidelines for policy retrieval.
+
+---
+
+## Setup & Running
+
+1. Install dependencies:
 ```bash
-# 1. Install dependencies
 pip install -r requirements.txt
+```
 
-# 2. Populate Atlas with demonstration applications (APP-1001 & APP-1002)
+2. Configure environment:
+Create a `.env` file with your MongoDB connection string:
+```env
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.cxry4fs.mongodb.net/trace_db?retryWrites=true&w=majority
+MONGO_DB=trace_db
+```
+
+3. Load sample applications:
+```bash
 python import_data.py
+```
 
-# 3. Test database queries
+4. Run verification test:
+```bash
 python test_db.py
 ```
 
 ---
 
-## 🤝 Team Hand-off Notes
+## Integration Guide for Team
 
-### 1. Backend & Pipeline Orchestration
-Import directly from `crud.py`:
-- `insert_extracted_fields(db, fields)`: Save fields extracted by AI.
-- `insert_bank_transactions(db, txns)`: Save parsed bank transactions.
-- `get_bank_statement_summary(db, ref)`: Check `opening + credits - debits == closing`.
-- `add_cross_check(db, ref, check_data)`: Record declared vs verified mismatches.
-- `update_risk(db, ref, ...)` & `update_routing(db, ref, "amber", reason)`: Save decisions.
-- `log_audit_event(db, ref, actor, action, detail)`: Log audit timeline events.
+### Backend / Pipeline
 
-### 2. Frontend & Dashboard UI
-Call read helpers from `crud.py` — all return clean JSON ready for UI:
-- `get_application_summary(db, ref)`: Header metrics & risk score.
-- `get_extracted_evidence(db, ref)`: Bounding boxes for clickable PDF proof.
-- `get_cross_check_results(db, ref)`: Declared vs verified discrepancy table.
-- `get_entity_graph(db, ref)`: Applicant relationship graph.
-- `get_bank_transactions(db, ref)` & `get_spending_summary(db, ref)`: Transactions & category charts.
-- `get_audit_trail(db, ref)`: Timeline of events.
+Import helper functions from `crud.py`:
 
-### 3. RAG Policy Engine
-- `insert_policy_embeddings_bulk(db, chunks)`: Store policy chunks.
-- `search_policy_chunks(db, loan_type, text_search)`: Query policy rules.
+```python
+from db_config import get_db
+from crud import (
+    create_application,
+    insert_extracted_fields,
+    insert_bank_transactions,
+    add_cross_check,
+    update_risk,
+    update_routing,
+    log_audit_event,
+    get_bank_statement_summary
+)
+
+db = get_db()
+
+# Save extracted fields
+insert_extracted_fields(db, fields_list)
+
+# Save parsed bank transactions
+insert_bank_transactions(db, transactions_list)
+
+# Check statement arithmetic
+summary = get_bank_statement_summary(db, "APP-1001")
+
+# Add cross-document comparison check
+add_cross_check(db, "APP-1001", check_data)
+
+# Update risk score and routing
+update_risk(db, "APP-1001", score=65.0, grade="Moderate", recommendation="human_review", factors={...})
+update_routing(db, "APP-1001", color="amber", reason="Salary credit variance flagged")
+
+# Log pipeline event
+log_audit_event(db, "APP-1001", actor="pipeline", action="processing_complete")
+```
+
+### Frontend / Dashboard
+
+Read queries return formatted dictionaries for direct UI rendering:
+
+```python
+from db_config import get_db
+from crud import (
+    get_application_summary,
+    get_extracted_evidence,
+    get_cross_check_results,
+    get_entity_graph,
+    get_bank_transactions,
+    get_spending_summary,
+    get_audit_trail
+)
+
+db = get_db()
+
+summary = get_application_summary(db, "APP-1001")
+evidence = get_extracted_evidence(db, "APP-1001")
+cross_checks = get_cross_check_results(db, "APP-1001")
+entity_graph = get_entity_graph(db, "APP-1001")
+transactions = get_bank_transactions(db, "APP-1001")
+spending = get_spending_summary(db, "APP-1001")
+audit_trail = get_audit_trail(db, "APP-1001")
+```
+
+### Policy RAG
+
+```python
+from db_config import get_db
+from crud import insert_policy_embeddings_bulk, search_policy_chunks
+
+db = get_db()
+
+insert_policy_embeddings_bulk(db, chunks_list)
+matches = search_policy_chunks(db, loan_type="personal_loan", text_search="FOIR")
+```

@@ -1,16 +1,36 @@
+"""
+TRACE — Data Ingestion & Sample Loader
+Loads loan applications, documents, evidence, and transactions into MongoDB.
+
+Usage:
+    python import_data.py                  # Seed sample applications into database
+    python import_data.py <filepath.json>  # Import a specific pipeline output file
+"""
+
 import json
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
+
 from bson import ObjectId
 from pymongo.database import Database
 from db_config import get_db
 
 
 def import_application_json(db: Database, filepath: str) -> dict:
+    """
+    Imports a loan application JSON file into MongoDB.
+    Creates:
+      - 1 application document (with embedded applicant, documents, cross-checks, entity graph)
+      - N extracted_fields documents (one per extracted key-value with bounding box evidence)
+      - N bank_transactions documents
+      - 1 audit log entry
+    """
     with open(filepath, "r", encoding="utf-8") as f:
         raw = f.read()
 
+    # Strip any comment lines if present
     if raw.lstrip().startswith("//"):
         raw = "\n".join(line for line in raw.split("\n") if not line.strip().startswith("//"))
 
@@ -19,22 +39,28 @@ def import_application_json(db: Database, filepath: str) -> dict:
     applicant = data.get("applicant", {})
     documents = data.get("documents", [])
 
+    # Check if already exists
     existing = db.applications.find_one({"application_ref": app_ref})
     if existing:
-        print(f"[SKIP] {app_ref} already exists in database.")
+        print(f"  ⚠️  {app_ref} already exists — skipping")
         return {"app_ref": app_ref, "skipped": True}
 
     payslips = [d for d in documents if d.get("doc_type") == "PAYSLIP"]
     bank_stmts = [d for d in documents if d.get("doc_type") == "BANK_STATEMENT"]
+    form16s = [d for d in documents if d.get("doc_type") == "FORM16"]
     pan_cards = [d for d in documents if d.get("doc_type") == "PAN_CARD"]
+    aadhaar_cards = [d for d in documents if d.get("doc_type") == "AADHAAR_CARD"]
     loan_apps = [d for d in documents if d.get("doc_type") == "LOAN_APPLICATION"]
 
     now = datetime.utcnow()
     embedded_docs = []
+    doc_id_map = {}
 
     for doc in documents:
         doc_id = ObjectId()
         doc_type = doc.get("doc_type", "OTHER")
+        doc_id_map[(doc_type, doc.get("extracted", {}).get("pay_month", ""))] = doc_id
+
         trust_tier = 2 if doc_type in ("PAN_CARD", "AADHAAR_CARD") else 1
         file_type = "jpg" if doc_type in ("PAN_CARD", "AADHAAR_CARD") else "pdf"
 
@@ -50,6 +76,7 @@ def import_application_json(db: Database, filepath: str) -> dict:
             "extracted": doc.get("extracted", {}),
         })
 
+    # Loan application details & liabilities
     loan_request_data = {}
     declared_liabilities = []
     if loan_apps:
@@ -68,6 +95,7 @@ def import_application_json(db: Database, filepath: str) -> dict:
     payslip_net_pays = [p.get("extracted", {}).get("net_pay", 0) for p in payslips if p.get("extracted", {}).get("net_pay")]
     avg_net_pay = sum(payslip_net_pays) / len(payslip_net_pays) if payslip_net_pays else 100000.0
 
+    # Build entity graph
     entity_graph = []
     name = applicant.get("full_name", "Applicant")
     for bs in bank_stmts:
@@ -86,6 +114,7 @@ def import_application_json(db: Database, filepath: str) -> dict:
             "properties": {"lender": lib.get("lender"), "emi": lib.get("emi_amount")},
         })
 
+    # Master Application Document
     application = {
         "application_ref": app_ref,
         "loan_type": "personal_loan",
@@ -131,8 +160,8 @@ def import_application_json(db: Database, filepath: str) -> dict:
         "cross_checks": [
             {
                 "check_type": "income_payslip_vs_bank",
-                "declared_value": f"Rs. {avg_net_pay:,.2f}",
-                "verified_value": f"Rs. {avg_net_pay:,.2f}",
+                "declared_value": f"₹{avg_net_pay:,.2f}",
+                "verified_value": f"₹{avg_net_pay:,.2f}",
                 "match_result": "match",
                 "discrepancy_amount": 0.0,
                 "severity": "minor",
@@ -147,6 +176,7 @@ def import_application_json(db: Database, filepath: str) -> dict:
     app_result = db.applications.insert_one(application)
     app_id = app_result.inserted_id
 
+    # Insert Extracted Fields with Evidence
     extracted_fields = []
     for ps in payslips:
         ext = ps.get("extracted", {})
@@ -194,6 +224,7 @@ def import_application_json(db: Database, filepath: str) -> dict:
     if extracted_fields:
         db.extracted_fields.insert_many(extracted_fields)
 
+    # Insert Bank Transactions
     txn_docs = []
     for bs in bank_stmts:
         ext = bs.get("extracted", {})
@@ -214,6 +245,7 @@ def import_application_json(db: Database, filepath: str) -> dict:
     if txn_docs:
         db.bank_transactions.insert_many(txn_docs)
 
+    # Insert Audit Log
     db.audit_logs.insert_one({
         "application_id": app_id,
         "application_ref": app_ref,
@@ -233,7 +265,8 @@ def import_application_json(db: Database, filepath: str) -> dict:
 
 
 def seed_demo_applications(db: Database):
-    print("Loading sample applications into MongoDB...")
+    """Generates starter loan applications for testing and demonstrations."""
+    print("🌱 Loading demonstration loan applications...")
 
     sample_apps = [
         {
@@ -321,8 +354,9 @@ def seed_demo_applications(db: Database):
     ]
 
     for app_data in sample_apps:
+        # Check if already in DB
         if db.applications.find_one({"application_ref": app_data["_id"]}):
-            print(f"[SKIP] {app_data['_id']} already exists.")
+            print(f"  ⏭️ {app_data['_id']} already exists")
             continue
 
         temp_path = f"_temp_{app_data['_id']}.json"
@@ -331,16 +365,16 @@ def seed_demo_applications(db: Database):
         res = import_application_json(db, temp_path)
         if os.path.exists(temp_path):
             os.remove(temp_path)
-        print(f"[OK] {res['app_ref']} ({res['applicant']}) imported.")
+        print(f"  ✅ {res['app_ref']} ({res['applicant']}) loaded.")
 
 
 if __name__ == "__main__":
     db = get_db()
     if len(sys.argv) > 1:
         filepath = sys.argv[1]
-        print(f"Importing {filepath}...")
+        print(f"📄 Importing {filepath}...")
         res = import_application_json(db, filepath)
-        print(f"Result: {res}")
+        print(f"✅ Finished: {res}")
     else:
         seed_demo_applications(db)
-        print("Data initialization complete.")
+        print("\n🎉 Database ready with demonstration data!\n")
