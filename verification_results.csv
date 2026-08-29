@@ -1,0 +1,9 @@
+Application Ref,Step 4 Comparison Finding,Verified Income,FOIR / DTI,Discrepancies,Risk Score,Routing Decision,Recommendation
+P002,Income Overstatement (33%),₹72,591.17,20.61%,2 Major,0.0 / 100,RED,reject
+P003,Clean / High Match (0.06% variance),₹61,011.00,20.60%,0,100.0 / 100,GREEN,auto_approve
+P007,Excessive FOIR (66.46%),₹37,092.17,66.46%,2,0.0 / 100,RED,reject
+P008,High Debt Burden (FOIR 148%),₹59,089.67,148.65%,2,0.0 / 100,RED,reject
+P009,Multiple Debt Obligations,₹45,681.67,83.59%,3,0.0 / 100,RED,reject
+P011,High Income, High Leverage (167%),₹200,363.00,167.61%,2,0.0 / 100,RED,reject
+P013,Undisclosed Debt & FOIR (146%),₹37,380.83,146.83%,2 Major,0.0 / 100,RED,reject
+P017,Elevated Debt-to-Income (156%),₹155,147.50,156.05%,3,0.0 / 100,RED,reject

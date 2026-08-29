@@ -3,7 +3,13 @@ from typing import Any, Optional
 from pymongo.database import Database
 
 
+def get_application(db: Database, application_ref: str) -> dict | None:
+    """Fetches the complete application document from MongoDB."""
+    return db.applications.find_one({"application_ref": application_ref})
+
+
 def get_application_summary(db: Database, application_ref: str) -> dict | None:
+    """Fetches high-level applicant, risk, and financial summary."""
     doc = db.applications.find_one({"application_ref": application_ref})
     if not doc:
         return None
@@ -28,6 +34,7 @@ def get_application_summary(db: Database, application_ref: str) -> dict | None:
         "total_existing_emis": financials.get("total_existing_emis"),
         "proposed_emi": financials.get("proposed_emi"),
         "foir_percentage": financials.get("foir_percentage"),
+        "disposable_income": financials.get("disposable_income"),
         "eligibility_passed": financials.get("eligibility_passed"),
         "full_name": primary.get("full_name"),
         "employer_name": primary.get("employer_name"),
@@ -39,7 +46,16 @@ def get_application_summary(db: Database, application_ref: str) -> dict | None:
     }
 
 
+def update_financials(db: Database, application_ref: str, financials_data: dict):
+    """Updates calculated financial metrics in applications.financials."""
+    return db.applications.update_one(
+        {"application_ref": application_ref},
+        {"$set": {"financials": financials_data, "updated_at": datetime.utcnow()}}
+    )
+
+
 def update_routing(db: Database, application_ref: str, color: str, reason: str):
+    """Updates final routing outcome (green / amber / red)."""
     status = "approved" if color == "green" else ("review" if color == "amber" else "rejected")
     return db.applications.update_one(
         {"application_ref": application_ref},
@@ -48,6 +64,7 @@ def update_routing(db: Database, application_ref: str, color: str, reason: str):
 
 
 def update_risk(db: Database, application_ref: str, score: float, grade: str, recommendation: str, factors: dict):
+    """Saves calculated risk score and factor ratings."""
     return db.applications.update_one(
         {"application_ref": application_ref},
         {"$set": {"risk": {"score": score, "grade": grade, "recommendation": recommendation, "factors": factors}, "updated_at": datetime.utcnow()}}
@@ -60,6 +77,7 @@ def insert_extracted_fields(db: Database, fields: list[dict]):
 
 
 def get_extracted_evidence(db: Database, application_ref: str) -> list[dict]:
+    """Fetches extracted fields with bounding box evidence."""
     cursor = db.extracted_fields.find({"application_ref": application_ref}).sort("created_at", 1)
     results = []
     for f in cursor:
@@ -114,6 +132,14 @@ def add_cross_check(db: Database, application_ref: str, check_data: dict):
     return db.applications.update_one(
         {"application_ref": application_ref},
         {"$push": {"cross_checks": check_data}, "$set": {"updated_at": datetime.utcnow()}}
+    )
+
+
+def clear_cross_checks(db: Database, application_ref: str):
+    """Clears cross checks before a fresh pipeline evaluation run."""
+    return db.applications.update_one(
+        {"application_ref": application_ref},
+        {"$set": {"cross_checks": [], "updated_at": datetime.utcnow()}}
     )
 
 

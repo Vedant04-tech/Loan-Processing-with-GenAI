@@ -1,5 +1,11 @@
-from db_config import check_health, get_db
-from crud import (
+import os
+import sys
+
+# Ensure project root is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from database.db_config import check_health, get_db
+from database.crud import (
     get_application_summary,
     get_extracted_evidence,
     get_cross_check_results,
@@ -17,7 +23,6 @@ def run():
     health = check_health()
     if health["status"] != "connected":
         print(f"Connection failed: {health.get('message')}")
-        print("Check if your IP is whitelisted in MongoDB Atlas Network Access.")
         return
 
     print(f"MongoDB Atlas Status: Connected (DB: {health.get('database')})")
