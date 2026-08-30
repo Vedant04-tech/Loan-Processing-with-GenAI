@@ -1,250 +1,554 @@
-# TRACE — Step 5 & Step 6 Underwriting Decision & Risk Engine
-## Module Documentation and Handover Guide
+# 📘 TRACE — Step 5 & Step 6 Underwriting Decision & Risk Engine
+## Complete Technical Handover & Operational User Guide
 
 ---
 
-## 1. System Architecture & Core Philosophy
+## 📑 Table of Contents
 
-This module implements **Step 5 (Calculation & Decision Engine)** and **Step 6 (Risk / Anomaly Engine)** of the TRACE Loan Document Processing Pipeline.
-
-### Architectural Principle
-> **"AI interprets nuanced context and classifies discrepancy severity, but financial math, obligation metrics, eligibility checks, risk scoring, and routing decisions are 100% deterministic and executed in plain Python."**
-
-This ensures that financial decisions are mathematically verifiable, regulatory-compliant, explainable, and immune to LLM hallucination or calculation errors.
-
-```
-MongoDB Atlas (Application Data, Extracted Evidence, Bank Transactions)
-   │
-   ▼
-STEP 5: Calculation Engine (Deterministic Python)
-   ├── 5.1 Income Calculation (Verified payslips vs Bank salary credits)
-   ├── 5.2 & 5.3 Obligations & Capacity (Declared vs Bank EMIs, FOIR/DTI)
-   ├── 5.4 Statement Arithmetic Reconciliation (Opening + Credits - Debits == Closing)
-   └── 5.5 Lender Policy Eligibility Checks (Evaluated against policies/personal_loan_rules.json)
-   │
-   ▼
-STEP 6.1: Discrepancy Discovery Engine (Deterministic Python)
-   └── Discovers and compiles evidence for all claim-vs-proof variances
-   │
-   ▼
-STEP 6.2: LangChain Anomaly Classifier (ChatGroq / Gemini)
-   └── Structured Pydantic severity classification (Minor / Moderate / Major) with safe fallback
-   │
-   ▼
-STEP 6.3: Risk Scoring & 3-Tier Routing (Deterministic Python)
-   ├── Mathematical point deductions (Base 100 -> Final Score 0-100)
-   └── 3-Tier Routing: GREEN (Auto Approve) | AMBER (Human Review) | RED (Reject)
-   │
-   ▼
-MongoDB Atlas Writeback
-   ├── applications.financials (Verified Income, Total EMIs, FOIR, Eligibility)
-   ├── applications.cross_checks (Itemized comparison records with severity & reasoning)
-   ├── applications.risk (Score, Grade, Factor Breakdown)
-   ├── applications.routing (Color & Routing Justification)
-   └── audit_logs (Immutable timestamped audit trail)
-```
+1. [System Overview & Architecture Philosophy](#1-system-overview--architecture-philosophy)
+2. [Prerequisites & Environment Setup](#2-prerequisites--environment-setup)
+3. [Database Architecture & Schema Reference](#3-database-architecture--schema-reference)
+4. [Step 5: Deterministic Calculation Engine Deep-Dive](#4-step-5-deterministic-calculation-engine-deep-dive)
+5. [Step 6: Risk, Anomaly & Routing Engine Deep-Dive](#5-step-6-risk-anomaly--routing-engine-deep-dive)
+6. [Operational Execution Guide (All Modes of Running)](#6-operational-execution-guide-all-modes-of-running)
+7. [Automated Test Suite & Verification](#7-automated-test-suite--verification)
+8. [Policy Configuration & Customization](#8-policy-configuration--customization)
+9. [MongoDB Atlas Writeback & Audit Trail Specifications](#9-mongodb-atlas-writeback--audit-trail-specifications)
+10. [Troubleshooting & Maintenance FAQ](#10-troubleshooting--maintenance-faq)
+11. [Assessment Panel & Viva Defense Guide](#11-assessment-panel--viva-defense-guide)
 
 ---
 
-## 2. Directory Structure & File Breakdown
+## 1. System Overview & Architecture Philosophy
 
-The repository is modularized into step-based packages where each file is between 30 and 70 lines of clean, readable Python code:
+This module implements **Step 5 (Financial Calculation & Policy Eligibility)** and **Step 6 (Risk Scoring, GenAI Anomaly Assessment & 3-Tier Routing)** of the **TRACE Loan Document Processing Platform**.
 
-```
-My Part/
-│
-├── database/                    # Data Storage Layer
-│   ├── db_config.py            # MongoDB Atlas connection manager with health check
-│   ├── models.py               # Pydantic schemas for the 5 MongoDB collections
-│   └── crud.py                 # Query and writeback functions
-│
-├── policies/                    # Underwriting Rules & Regulations
-│   ├── policy_loader.py        # Dynamic JSON policy rules loader
-│   └── personal_loan_rules.json # Policy specs (FOIR: 50%, Min Income: Rs. 25k, Variance: 10%)
-│
-├── step5_calculation/           # STEP 5: Calculation Engine (Deterministic Python)
-│   ├── income.py               # 5.1 Payslip net pay averaging, bank salary credit resolution
-│   ├── obligations.py          # 5.2 & 5.3 Declared vs bank EMIs, undisclosed debt, FOIR/DTI
-│   ├── statement.py            # 5.4 Statement balance arithmetic (Opening + Credits - Debits == Closing)
-│   └── eligibility.py          # 5.5 Policy threshold rule evaluations (Pass / Fail)
-│
-├── step6_risk_anomaly/          # STEP 6: Risk & Anomaly Engine
-│   ├── schemas.py              # Pydantic models for LLM structured output
-│   ├── discrepancy.py          # 6.1 Discrepancy discovery (Income, EMI, Statement, Identity, Employer)
-│   ├── anomaly_classifier.py   # 6.2 LangChain ChatGroq structured classification with fallback
-│   └── risk_rules.py           # 6.3 Mathematical risk scoring (0-100) and 3-tier routing
-│
-├── tests/                       # Test & Validation Suite
-│   ├── test_db.py              # MongoDB Atlas query verification
-│   └── test_decision_engine.py # 9-scenario unit & integration test suite
-│
-├── decision_engine.py           # Main Orchestrator: run_decision_pipeline(application_ref)
-├── import_data.py               # Demonstration data loader for MongoDB Atlas
-├── temp_verification_results.csv# Batch test results across Step 4 outputs
-├── requirements.txt             # Python dependencies
-└── .env & .gitignore            # Environment configuration & credential protection
+### 🛡️ The Architectural Guarantee: Zero Math Hallucinations
+In loan underwriting, allowing a Large Language Model (LLM) to perform arithmetic or make autonomous approval decisions introduces severe risks of calculation errors, non-deterministic outputs, and regulatory non-compliance.
+
+TRACE enforces a strict **separation of concerns**:
+- **Deterministic Python Engine:** Performs 100% of financial calculations (income averaging, bank salary resolution, obligation summation, loan stacking gap calculation, statement balance reconciliation, policy eligibility checks, mathematical point deductions, and 3-tier traffic-light routing).
+- **Intelligent GenAI Layer:** Leverages `ChatGroq` (`openai/gpt-oss-20b` or `llama-3.3-70b-versatile`) strictly to analyze pre-detected discrepancies, assign contextual severity (`Minor`, `Moderate`, `Major`), and synthesize human-readable underwriting summaries.
+- **Zero-Downtime Fallback:** If the LLM API is unavailable, rate-limited, or times out, a deterministic rule-based classifier engages automatically so the pipeline never halts.
+
+```mermaid
+flowchart TD
+    subgraph INGESTION["1. Input Data Layer"]
+        A1[Extracted Document Fields]
+        A2[Bank Statement Transactions]
+        A3[Application Form Claims]
+    end
+
+    subgraph STEP5["2. Step 5 Calculation Engine (Deterministic)"]
+        B1["5.1 Income Calculation<br/>min(Payslip Avg, Bank Salary Credits)"]
+        B2["5.2 & 5.3 Obligations & FOIR<br/>Bank EMI Debit Scan + Undisclosed Debt"]
+        B3["5.4 Balance Reconciliation<br/>Op + Credits - Debits == Cl"]
+        B4["5.5 Policy Eligibility<br/>personal_loan_rules.json evaluation"]
+    end
+
+    subgraph STEP6["3. Step 6 Risk & Anomaly Engine"]
+        C1["6.1 Discrepancy Discovery<br/>Identify all claim-vs-proof gaps"]
+        C2["6.2 LangChain Groq Classifier<br/>Structured Pydantic Output + Fallback"]
+        C3["6.3 100-Point Risk Scoring & Routing<br/>Mathematical Deductions + 3-Tier Routing"]
+    end
+
+    subgraph DECISION["4. Decision & Persistence Layer"]
+        D1["🟢 GREEN (Auto Approve)"]
+        D2["🟡 AMBER (Human Review)"]
+        D3["🔴 RED (Reject)"]
+        D4[("MongoDB Atlas Collections<br/>Financials, Cross-Checks, Risk, Audit Trail")]
+    end
+
+    INGESTION --> STEP5
+    STEP5 --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> D1 & D2 & D3
+    D1 & D2 & D3 --> D4
 ```
 
 ---
 
-## 3. Core Features Implemented
+## 2. Prerequisites & Environment Setup
 
-### Step 5: Calculation Engine
-1. **Verified Income Calculation (`step5_calculation/income.py`)**:
-   - Parses multiple payslips and calculates average net monthly salary.
-   - Extracts verified `salary_credit` transactions from the bank statement.
-   - Computes verified monthly income as the lower bound of payslip vs bank records to prevent income fraud.
-   - Calculates exact income variance amount and percentage against declared figures.
+### 2.1 System Prerequisites
+- **Python:** `3.10`, `3.11`, or `3.12`
+- **Database:** MongoDB Atlas instance (or local MongoDB 6.0+)
+- **LLM API Key:** [Groq Cloud](https://console.groq.com) API Key (or Google Gemini API Key)
 
-2. **Obligations & FOIR / DTI (`step5_calculation/obligations.py`)**:
-   - Aggregates declared monthly loan obligations.
-   - Scans bank statement debits for recurring EMI / loan debits (`category == "emi_debit"` or narration patterns).
-   - Detects **undisclosed liabilities** (loan stacking) when bank debits exceed declared debt.
-   - Calculates proposed loan EMI (standard amortization math) and computes total Fixed Obligation to Income Ratio (FOIR).
-   - Computes net disposable income.
+### 2.2 Installation Steps
 
-3. **Bank Statement Arithmetic Reconciliation (`step5_calculation/statement.py`)**:
-   - Reconciles the fundamental banking formula:
-     $$\text{Opening Balance} + \text{Total Credits} - \text{Total Debits} == \text{Closing Balance}$$
-   - Identifies corrupted, truncated, or tampered bank statements and flags arithmetic mismatches.
+1. **Navigate to the Project Directory:**
+   ```bash
+   cd "g:\Inventer's Zone\MyProjects\Cognizent\My Part"
+   ```
 
-4. **Lender Policy Eligibility (`step5_calculation/eligibility.py`)**:
-   - Evaluates applicant metrics against dynamic rules configured in `policies/personal_loan_rules.json`:
-     - FOIR $\le 50.0\%$
-     - Verified Monthly Net Income $\ge \text{Rs. } 25,000$
-     - Income Variance $\le 20.0\%$
-     - Undisclosed Debt Gap $< \text{Rs. } 10,000$
-   - Returns a structured `PASS` or `FAIL` with itemized failure reasons.
+2. **Create and Activate a Virtual Environment (Recommended):**
+   ```bash
+   # Windows (PowerShell)
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
 
----
+   # Linux / macOS
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
 
-### Step 6: Risk & Anomaly Engine
-1. **Deterministic Discrepancy Discovery (`step6_risk_anomaly/discrepancy.py`)**:
-   - Discovers claim-vs-proof variances before calling the LLM:
-     - `INCOME_MISMATCH`
-     - `UNDISCLOSED_LIABILITY`
-     - `STATEMENT_ARITHMETIC_MISMATCH`
-     - `EMPLOYMENT_MISMATCH`
-     - `IDENTITY_MISMATCH`
-     - `ELIGIBILITY_FAILURE`
-     - `MISSING_EVIDENCE`
+3. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-2. **LangChain Anomaly Classification (`step6_risk_anomaly/anomaly_classifier.py`)**:
-   - Uses `ChatGroq` (`openai/gpt-oss-20b`) with `.with_structured_output(AnomalyAssessment)`.
-   - Classifies each discrepancy into `Minor`, `Moderate`, or `Major` severity with underwriting reasoning grounded in evidence.
-   - **Safe Fallback**: If the LLM call times out or network is unavailable, engages a deterministic rule fallback so the pipeline never fails.
+4. **Configure Environment Variables (`.env`):**
+   Create a `.env` file in the root of the project with the following contents:
+   ```env
+   # MongoDB Atlas Connection
+   MONGO_URI=mongodb+srv://<username>:<password>@cluster0.cxry4fs.mongodb.net/trace_db?retryWrites=true&w=majority
+   MONGO_DB=trace_db
 
-3. **Mathematical Risk Scoring & 3-Tier Routing (`step6_risk_anomaly/risk_rules.py`)**:
-   - Calculates risk score ($0–100$) starting from a base of 100 points:
-     - Minor anomaly: $-10\text{ pts}$
-     - Moderate anomaly: $-25\text{ pts}$
-     - Major anomaly: $-45\text{ pts}$
-     - Statement arithmetic failure: $-30\text{ pts}$
-     - Policy eligibility failure: $-50\text{ pts}$
-   - Deterministic 3-Tier Routing:
-     - **GREEN (Auto Approve)**: Score $\ge 80$, eligibility passed, zero major/moderate anomalies, valid bank statement.
-     - **AMBER (Human Review)**: Score $50–79$, or moderate anomalies, or minor variances flagged for manual verification.
-     - **RED (Reject)**: Score $< 50$, or eligibility failed, or major anomalies detected (severe income overstatement, loan stacking, or statement failure).
+   # Groq API Key (for Step 6.2 Anomaly Classification)
+   GROQ_API_KEY=gsk_your_groq_api_key_here
+
+   # Gemini API Key (Optional secondary LLM provider)
+   GEMINI_API_KEY=AQ_your_gemini_api_key_here
+   ```
+
+5. **Verify Database Connectivity:**
+   ```bash
+   python -m unittest tests.test_db
+   ```
 
 ---
 
-## 4. How to Use the Pipeline
+## 3. Database Architecture & Schema Reference
 
-### Step 1: Install Dependencies
-```bash
-pip install -r requirements.txt
+The system interacts with **5 collections** within MongoDB Atlas:
+
+```
+trace_db/
+├── applications         # Master loan application state, applicant info, financials, risk, routing
+├── extracted_fields     # Field-level extracted values with bounding box & confidence evidence
+├── bank_transactions    # Individual bank credit/debit records with categorization tags
+├── audit_logs           # Immutable chronological audit trail of all engine actions
+└── policy_embeddings    # RAG vector chunks for policy documents (if semantic policy lookup is used)
 ```
 
-### Step 2: Configure `.env`
-Ensure your MongoDB Atlas URI and Groq / Gemini API keys are configured:
-```env
-MONGO_URI=mongodb+srv://<username>:<password>@cluster0.cxry4fs.mongodb.net/trace_db?retryWrites=true&w=majority
-MONGO_DB=trace_db
-GROQ_API_KEY=gsk_...
-GEMINI_API_KEY=AQ...
+### 3.1 Collection Schemas
+
+#### 1. `applications` Collection
+```json
+{
+  "_id": ObjectId("..."),
+  "application_ref": "P003",
+  "loan_type": "personal_loan",
+  "status": "approved", // "pending" | "approved" | "review" | "rejected"
+  "routing": {
+    "color": "green", // "green" | "amber" | "red"
+    "reason": "Application verified across all documents with low debt-to-income ratio and zero policy violations."
+  },
+  "risk": {
+    "score": 100.0,
+    "grade": "Low", // "Low" (≥80) | "Moderate" (50-79) | "High" (<50)
+    "recommendation": "auto_approve", // "auto_approve" | "human_review" | "reject"
+    "factors": {
+      "income_consistency": "Verified",
+      "employment_stability": "Stable",
+      "credit_behaviour": "Good",
+      "emi_burden": "Low"
+    }
+  },
+  "financials": {
+    "verified_monthly_income": 61011.00,
+    "total_existing_emis": 0.00,
+    "proposed_emi": 12569.80,
+    "foir_percentage": 20.60,
+    "foir_threshold": 50.0,
+    "disposable_income": 48441.20,
+    "eligibility_passed": true,
+    "eligibility_reasons": ["All policy criteria satisfied."],
+    "loan_request": {
+      "loan_amount_requested": 350000,
+      "tenure_months": 36
+    }
+  },
+  "applicants": [
+    {
+      "role": "primary",
+      "full_name": "Suresh Kumar",
+      "pan_number": "ABCPS1234F",
+      "aadhaar_last4": "4418",
+      "employer_name": "Infosys Ltd",
+      "employment_type": "salaried"
+    }
+  ],
+  "documents": [
+    {
+      "_id": ObjectId("..."),
+      "original_filename": "payslip_p003.pdf",
+      "doc_type": "PAYSLIP",
+      "trust_tier": 1,
+      "processing_status": "done",
+      "extracted": { "net_pay": 61011.00, "gross_earnings": 72000.00, "employer_name": "Infosys Ltd" }
+    }
+  ],
+  "cross_checks": [
+    {
+      "check_type": "INCOME_MISMATCH",
+      "declared_value": "Rs. 61,000.00",
+      "verified_value": "Rs. 61,011.00",
+      "match_result": "match",
+      "discrepancy_amount": 11.00,
+      "severity": "minor",
+      "explanation": "Income aligns with bank and payslip evidence.",
+      "checked_at": "2026-08-30T10:00:00Z"
+    }
+  ],
+  "created_at": "2026-08-30T10:00:00Z",
+  "updated_at": "2026-08-30T10:05:00Z"
+}
 ```
 
-### Step 3: Seed Sample Applications (Optional)
+#### 2. `bank_transactions` Collection
+```json
+{
+  "_id": ObjectId("..."),
+  "application_ref": "P003",
+  "txn_date": "2026-06-30",
+  "description": "ACH CR-INFOSYS LTD-SALARY",
+  "amount": 61011.00,
+  "txn_type": "credit",
+  "category": "salary_credit",
+  "is_salary_match": true,
+  "created_at": "2026-08-30T10:00:00Z"
+}
+```
+
+#### 3. `audit_logs` Collection
+```json
+{
+  "_id": ObjectId("..."),
+  "application_ref": "P003",
+  "actor": "pipeline:decision_engine",
+  "action": "routed_green",
+  "detail": {
+    "risk_score": 100.0,
+    "risk_grade": "Low",
+    "foir": 20.6,
+    "anomalies_count": 0,
+    "discrepancies_count": 0,
+    "is_llm_fallback": false
+  },
+  "created_at": "2026-08-30T10:05:00Z"
+}
+```
+
+---
+
+## 4. Step 5: Deterministic Calculation Engine Deep-Dive
+
+Located in `step5_calculation/`, this module contains pure, deterministic Python calculations without external network dependencies.
+
+### 4.1 Income Calculation (`step5_calculation/income.py`)
+1. **Multi-Month Payslip Averaging:**
+   $$\text{Avg Payslip Net} = \frac{1}{N} \sum_{i=1}^{N} \text{Payslip Net Pay}_i$$
+2. **Bank Salary Credit Averaging:**
+   $$\text{Avg Bank Salary} = \frac{1}{M} \sum_{j=1}^{M} \text{Amount}_j \quad \text{for } \text{category} = \text{"salary\_credit"}$$
+3. **Anti-Fraud Conservative Resolution:**
+   $$\text{Verified Income} = \begin{cases} \min(\text{Avg Payslip Net}, \text{Avg Bank Salary}) & \text{if both present} \\ \text{Avg Payslip Net} & \text{if only payslips present} \\ \text{Avg Bank Salary} & \text{if only bank credits present} \\ \text{Declared Income} & \text{if neither present} \end{cases}$$
+4. **Income Variance Computation:**
+   $$\text{Income Variance} = |\text{Declared Income} - \text{Verified Income}|$$
+   $$\text{Variance \%} = \frac{\text{Income Variance}}{\text{Verified Income}} \times 100$$
+
+### 4.2 Obligations & Debt Capacity (`step5_calculation/obligations.py`)
+1. **Declared Monthly EMIs:**
+   $$\text{Declared Total EMI} = \sum \text{Declared Liability EMI}$$
+2. **Detected Bank EMIs (Loan Stacking Scanner):**
+   $$\text{Detected Bank EMI} = \sum |\text{Amount}_k| \quad \text{for debits where } \text{category} = \text{"emi\_debit"}$$
+3. **Undisclosed Debt Gap:**
+   $$\text{Undisclosed Gap} = \max(0, \text{Detected Bank EMI} - \text{Declared Total EMI})$$
+   *If $\text{Undisclosed Gap} > \text{Rs. 1,000.00}$, flag `has_undisclosed_liabilities = True`.*
+4. **Proposed Loan EMI (Standard Reducing Balance Amortization):**
+   If proposed EMI is not explicitly supplied in `financials`:
+   $$\text{Monthly Rate } r = \frac{0.12}{12} = 0.01$$
+   $$\text{Proposed EMI} = \frac{P \cdot r \cdot (1 + r)^n}{(1 + r)^n - 1}$$
+   *(where $P = \text{Loan Amount Requested}$, $n = \text{Tenure in Months}$)*
+5. **Fixed Obligation to Income Ratio (FOIR / DTI):**
+   $$\text{Total Monthly Obligations} = \max(\text{Declared EMI}, \text{Detected Bank EMI}) + \text{Proposed EMI}$$
+   $$\text{FOIR \%} = \frac{\text{Total Monthly Obligations}}{\text{Verified Monthly Income}} \times 100$$
+6. **Net Disposable Income:**
+   $$\text{Disposable Income} = \max(0, \text{Verified Monthly Income} - \text{Total Monthly Obligations})$$
+
+### 4.3 Statement Arithmetic Reconciliation (`step5_calculation/statement.py`)
+Reconciles the mathematical integrity of bank statements:
+$$\text{Expected Closing Balance} = \text{Opening Balance} + \text{Total Credits} - \text{Total Debits}$$
+$$\Delta = |\text{Expected Closing Balance} - \text{Actual Closing Balance}|$$
+- If $\Delta \le \text{Rs. 5.00}$: `is_valid = True`, `status = "MATCH"`
+- If $\Delta > \text{Rs. 5.00}$: `is_valid = False`, `status = "MISMATCH"` (flags altered/corrupted statement).
+
+### 4.4 Lender Policy Eligibility (`step5_calculation/eligibility.py`)
+Evaluates applicant metrics against dynamic rules in `policies/personal_loan_rules.json`:
+- **FOIR Check:** $\text{FOIR \%} \le 50.0\%$
+- **Minimum Net Income:** $\text{Verified Monthly Income} \ge \text{Rs. 25,000.00}$
+- **Severe Income Variance Limit:** $\text{Income Variance \%} \le 20.0\%$
+- **Undisclosed Debt Limit:** $\text{Undisclosed Debt Gap} < \text{Rs. 10,000.00}$
+
+Returns `EligibilityResult(passed=True/False, reasons=[...])`.
+
+---
+
+## 5. Step 6: Risk, Anomaly & Routing Engine Deep-Dive
+
+Located in `step6_risk_anomaly/`.
+
+### 5.1 Discrepancy Discovery (`step6_risk_anomaly/discrepancy.py`)
+Before invoking any LLM, deterministic rules scan the calculation results to find all discrepancies:
+- `INCOME_MISMATCH`: Triggered when income variance $> 5.0\%$.
+- `UNDISCLOSED_LIABILITY`: Triggered when bank loan debits exceed stated liabilities.
+- `STATEMENT_ARITHMETIC_MISMATCH`: Triggered when bank opening/closing math fails.
+- `EMPLOYMENT_MISMATCH`: Triggered when stated employer does not match payslip.
+- `ELIGIBILITY_FAILURE`: Triggered when one or more policy thresholds fail.
+
+### 5.2 GenAI Anomaly Classifier (`step6_risk_anomaly/anomaly_classifier.py`)
+Invokes LangChain with `ChatGroq` (`openai/gpt-oss-20b` or `llama-3.3-70b-versatile`):
+- Uses `.with_structured_output(AnomalyAssessment)` to enforce strict Pydantic parsing:
+  ```python
+  class ClassifiedAnomaly(BaseModel):
+      discrepancy_type: str
+      severity: str  # "Minor" | "Moderate" | "Major"
+      reasoning: str
+
+  class AnomalyAssessment(BaseModel):
+      anomalies: list[ClassifiedAnomaly]
+      underwriting_summary: str
+  ```
+- **Strict Prompt Constraint:** The prompt explicitly forbids the LLM from computing numbers; it only classifies severity and explains context.
+
+### 5.3 Zero-Downtime Safe Fallback
+If the Groq API key is missing, network is down, or rate limits are reached, the system executes a deterministic rule-based severity classifier:
+- `INCOME_MISMATCH`: `Major` if variance $> 15\%$, `Moderate` if $> 5\%$, `Minor` otherwise.
+- `UNDISCLOSED_LIABILITY`: `Major` if undisclosed gap $> \text{Rs. 10,000}$, `Moderate` otherwise.
+- `STATEMENT_ARITHMETIC_MISMATCH`: `Major`.
+- `ELIGIBILITY_FAILURE`: `Major`.
+
+### 5.4 100-Point Risk Scoring & 3-Tier Routing (`step6_risk_anomaly/risk_rules.py`)
+
+#### Scoring Formula:
+$$\text{Score} = 100 - (N_{\text{major}} \times 45) - (N_{\text{moderate}} \times 25) - (N_{\text{minor}} \times 10) - \Delta_{\text{statement}} - \Delta_{\text{eligibility}}$$
+*(where $\Delta_{\text{statement}} = 30$ if statement invalid, $\Delta_{\text{eligibility}} = 50$ if policy failed. Bounded between 0.0 and 100.0).*
+
+#### 3-Tier Routing Matrix:
+
+| Routing Color | Status | Criteria | Action |
+| :--- | :--- | :--- | :--- |
+| 🟢 **GREEN** | `approved` | Score $\ge 80.0$ AND Policy Passed AND $N_{\text{major}}=0$ AND $N_{\text{moderate}}=0$ AND Statement Valid | **Instant Auto-Approval** |
+| 🟡 **AMBER** | `review` | Score $50.0–79.9$ OR moderate anomalies requiring human judgment | **Routed to Underwriter Queue** |
+| 🔴 **RED** | `rejected` | Score $< 50.0$ OR Policy Failed OR $N_{\text{major}} > 0$ OR $\text{FOIR} > 65.0\%$ | **Instant Rejection with Reasons** |
+
+---
+
+## 6. Operational Execution Guide (All Modes of Running)
+
+### Mode 1: Seed Demo Data into MongoDB Atlas
+Seeds realistic demo applications with payslips, PAN cards, bank statements, and transactions:
 ```bash
 python import_data.py
 ```
 
-### Step 4: Run the Decision Pipeline (CLI)
-
-You can run the decision pipeline by passing an application reference or a Step 4 comparison JSON file:
-
+### Mode 2: Run by Application Reference (CLI)
+Runs the entire Step 5 & Step 6 pipeline for an applicant already stored in MongoDB:
 ```bash
-# Option A: Passing the Application ID
 python decision_engine.py P002
-
-# Option B: Passing a Step 4 JSON comparison file directly
-python decision_engine.py "op by prachi/comparison_result_P003.json"
 ```
 
-**Example Output:**
+**CLI Output Example:**
 ```
-Ingesting Step 4 Comparison File: op by prachi/comparison_result_P003.json -> Applicant: P003
-Running Decision Pipeline for: P003
-Decision: GREEN (auto_approve)
-Risk Score: 100.0/100 (Low)
-Verified Income: Rs. 61,011.00
-FOIR: 20.6%
-Discrepancies: 0
-Summary: All document checks and calculations verified without discrepancies.
+Running Decision Pipeline for: P002
+Decision: RED (reject)
+Risk Score: 0.0/100 (High)
+Verified Income: Rs. 72,591.17
+FOIR: 20.61%
+Discrepancies: 2
+Summary: Evaluated 2 discrepancy(ies) via deterministic underwriting rules: Income overstatement of 33% detected.
 ```
 
-### Step 5: Run Programmatically in Python
+### Mode 3: Run by Ingesting Step 4 Comparison JSON Directly
+Directly processes a Step 4 document comparison JSON file:
+```bash
+python decision_engine.py "comparison_result_P003.json"
+```
+
+### Mode 4: Programmatic Integration (Python API)
+Integrate the decision pipeline inside any FastAPI, Flask, or backend service:
 
 ```python
+from database.db_config import get_db
 from decision_engine import run_decision_pipeline
 
-# Executes calculations, LLM anomaly classification, and writes to MongoDB
-result = run_decision_pipeline("P003")
+# 1. Connect to database
+db = get_db()
 
-print("Routing Decision:", result.routing_color.upper())   # GREEN / AMBER / RED
-print("Recommendation:", result.recommendation)           # auto_approve / human_review / reject
-print("Risk Score:", result.risk_score)                   # 100.0
-print("Verified Income:", result.income_metrics.verified_monthly_income)
-print("FOIR:", result.obligation_metrics.foir_percentage)
-print("Discrepancies:", len(result.discrepancies))
-print("Underwriting Summary:", result.underwriting_summary)
+# 2. Execute decision pipeline
+result = run_decision_pipeline(
+    application_ref="P003",
+    policy_name="personal_loan",
+    db=db
+)
+
+# 3. Access verified financial metrics & underwriting outcomes
+print("--- UNDERWRITING OUTCOME ---")
+print(f"Routing Decision:   {result.routing_color.upper()}") # GREEN / AMBER / RED
+print(f"Status:             {result.status}")                # approved / review / rejected
+print(f"Recommendation:     {result.recommendation}")        # auto_approve / human_review / reject
+print(f"Risk Score:         {result.risk_score} / 100 ({result.risk_grade})")
+
+print("\n--- DETERMINISTIC FINANCIALS ---")
+print(f"Verified Income:    Rs. {result.income_metrics.verified_monthly_income:,.2f}")
+print(f"Income Variance:    {result.income_metrics.income_variance_percent}%")
+print(f"Existing EMIs:      Rs. {result.obligation_metrics.total_existing_emis:,.2f}")
+print(f"Proposed EMI:       Rs. {result.obligation_metrics.proposed_emi:,.2f}")
+print(f"FOIR / DTI:         {result.obligation_metrics.foir_percentage}%")
+print(f"Disposable Income:  Rs. {result.obligation_metrics.disposable_income:,.2f}")
+
+print("\n--- VALIDATION & ELIGIBILITY ---")
+print(f"Statement Math:     {result.statement_validation.status}")
+print(f"Policy Passed:      {result.eligibility_result.passed}")
+print(f"Discrepancies:      {len(result.discrepancies)} detected")
+print(f"LLM Fallback Used:  {result.is_llm_fallback}")
+print(f"Summary:            {result.underwriting_summary}")
 ```
 
 ---
 
-## 5. Test Suite & Verification
+## 7. Automated Test Suite & Verification
 
-The test suite covers **9 distinct underwriting scenarios**:
+The test suite covers **9 distinct underwriting scenarios** including normal flow, fraud detection, balance reconciliation errors, and LLM failure resilience:
 
+### 7.1 Running the Tests
 ```bash
+# Run all tests
 python -m unittest tests.test_decision_engine
+
+# Run with verbose output
+python -m unittest -v tests.test_decision_engine
 ```
 
-### Test Coverage Breakdown
-1. `test_1_verified_income_calculation`: Payslip averaging and bank salary credit resolution.
-2. `test_2_obligations_and_foir`: Declared debt, proposed loan EMI, FOIR, and disposable income.
-3. `test_3_undisclosed_liability_detection`: Detection of loan stacking / unstated bank EMIs.
-4. `test_4_statement_arithmetic_matching`: Verified bank statement reconciliation.
-5. `test_5_statement_arithmetic_mismatch`: Detection of corrupted / tampered statement balances.
-6. `test_6_eligibility_check_pass_and_fail`: Evaluation of policy rules against applicant metrics.
-7. `test_7_clean_applicant_routing_green`: Verified clean applicant routed to GREEN (Auto Approve).
-8. `test_8_major_anomaly_routing_red`: Major income overstatement + undisclosed debt routed to RED (Reject).
-9. `test_9_llm_fallback_resilience`: Validates safe deterministic execution when LLM is unavailable.
+### 7.2 Test Case Matrix
+
+| Test ID | Test Function | Scenario Tested | Expected Verification |
+| :--- | :--- | :--- | :--- |
+| **Test 1** | `test_1_verified_income_calculation` | Multi-payslip net pay averaging vs bank salary credits | Correct min-bound resolution and 0% variance |
+| **Test 2** | `test_2_obligations_and_foir` | Declared EMIs, proposed loan EMI, FOIR %, disposable income | Accurate FOIR (25.0%) and zero undisclosed debt |
+| **Test 3** | `test_3_undisclosed_liability_detection` | Bank transactions show ₹35k EMIs while applicant declared ₹10k | Flags undisclosed gap of ₹25,000 as loan stacking |
+| **Test 4** | `test_4_statement_arithmetic_matching` | Statement: Op (10k) + Cr (50k) − Dr (20k) = Cl (40k) | Passes reconciliation with `status = "MATCH"` |
+| **Test 5** | `test_5_statement_arithmetic_mismatch` | Statement closing balance tampered to ₹99,999 | Flags mismatch of ₹59,999 with `status = "MISMATCH"` |
+| **Test 6** | `test_6_eligibility_check_pass_and_fail` | Evaluates qualifying vs high-risk/failing applicant metrics | Pass for clean applicant; Fail with reasons for high-risk |
+| **Test 7** | `test_7_clean_applicant_routing_green` | Verified clean applicant with low debt and zero discrepancies | Routed to 🟢 **GREEN** (`auto_approve`), Score $\ge 85$ |
+| **Test 8** | `test_8_major_anomaly_routing_red` | Major income overstatement + undisclosed debt | Routed to 🔴 **RED** (`reject`), Score $< 50$ |
+| **Test 9** | `test_9_llm_fallback_resilience` | LLM offline / missing API key scenario | Seamlessly executes rule fallback without errors |
 
 ---
 
-## 6. Panel Defense & Presentation Guide
+## 8. Policy Configuration & Customization
 
-When presenting this module to evaluators or the assessment panel, emphasize these points:
+Underwriting policies are stored in JSON format in `policies/` and loaded dynamically via `policies/policy_loader.py`.
 
-1. **Deterministic Separation**:
-   *"We strictly avoid letting the LLM calculate numbers or assign arbitrary approval scores. Python performs all arithmetic and rule validations; the LLM is used exclusively for linguistic interpretation and severity explanation."*
+### Policy File: `policies/personal_loan_rules.json`
+```json
+{
+  "policy_name": "personal_loan_standard",
+  "version": "1.0",
+  "rules": {
+    "foir": {
+      "standard_threshold_percent": 50.0,
+      "max_acceptable_percent": 60.0,
+      "high_risk_threshold_percent": 65.0
+    },
+    "income": {
+      "min_monthly_net_income": 25000.0,
+      "max_acceptable_variance_percent": 10.0,
+      "severe_variance_percent": 20.0
+    },
+    "liabilities": {
+      "max_allowed_undisclosed_emi_gap": 2000.0,
+      "major_undisclosed_threshold": 10000.0
+    },
+    "employment": {
+      "min_experience_months": 6,
+      "require_matching_employer": true
+    },
+    "statement": {
+      "require_arithmetic_balance_match": true,
+      "max_balance_reconciliation_error": 5.0
+    },
+    "scoring_weights": {
+      "base_score": 100.0,
+      "minor_anomaly_deduction": 10.0,
+      "moderate_anomaly_deduction": 25.0,
+      "major_anomaly_deduction": 45.0,
+      "arithmetic_mismatch_deduction": 30.0,
+      "eligibility_failure_deduction": 50.0
+    },
+    "routing_thresholds": {
+      "green_min_score": 80.0,
+      "amber_min_score": 50.0
+    }
+  }
+}
+```
 
-2. **Defense Against Fraud & Tampering**:
-   *"Our engine catches two of the most common loan fraud vectors: income inflation (via payslip vs bank salary reconciliation) and loan stacking (via recurring bank EMI debit discovery)."*
+> 💡 **Customization Tip:** You can create product-specific policies (e.g., `home_loan_rules.json`, `business_loan_rules.json`) and simply pass the policy name to `run_decision_pipeline(app_ref, policy_name="home_loan")`.
 
-3. **Production-Ready Fallback**:
-   *"If the LLM API is unreachable or rate-limited, the system falls back to rule-based classification and continues to function without downtime."*
+---
 
-4. **Auditable MongoDB Writeback**:
-   *"Every decision generates verified financial records, itemized cross-checks, risk breakdowns, and an immutable audit log entry in MongoDB Atlas for regulatory compliance."*
+## 9. MongoDB Atlas Writeback & Audit Trail Specifications
+
+Whenever `run_decision_pipeline()` executes, it writes back complete underwriting results to MongoDB Atlas:
+
+1. **`applications.financials`:** Updates verified income, total EMIs, proposed EMI, FOIR %, disposable income, and eligibility flags.
+2. **`applications.cross_checks`:** Clears previous checks and writes new itemized comparison records with severity (`minor`/`moderate`/`major`), variance amounts, and grounding evidence.
+3. **`applications.risk`:** Updates calculated score ($0–100$), grade (`Low`/`Moderate`/`High`), recommendation (`auto_approve`/`human_review`/`reject`), and factor breakdowns.
+4. **`applications.routing`:** Sets routing color (`green`/`amber`/`red`), justification reason, and application status (`approved`/`review`/`rejected`).
+5. **`audit_logs`:** Appends an immutable audit entry with actor `pipeline:decision_engine`, action `routed_<color>`, execution timestamp, and anomaly counters.
+
+---
+
+## 10. Troubleshooting & Maintenance FAQ
+
+### Q1: MongoDB connection fails or times out
+- **Fix:** Ensure your IP address is whitelisted in MongoDB Atlas Network Access (set to `0.0.0.0/0` for development or add your current IP). Check that `MONGO_URI` in `.env` has valid credentials.
+
+### Q2: What happens if Groq API hits rate limits or goes offline?
+- **Behavior:** The engine catches the exception, logs `[WARN] LLM fallback active`, and seamlessly engages the deterministic severity classifier. The pipeline returns `is_llm_fallback = True` and completes without interruption.
+
+### Q3: How do I change the maximum allowed FOIR?
+- **Fix:** Open `policies/personal_loan_rules.json` and adjust `"standard_threshold_percent": 50.0`. No code edits or recompilation required.
+
+### Q4: An applicant has no bank statement attached. How does the engine handle it?
+- **Behavior:** `income.py` falls back to payslip averaging. If neither is available, it uses the declared income with a flagged variance discrepancy.
+
+---
+
+## 11. Assessment Panel & Viva Defense Guide
+
+When presenting this project to examiners, evaluators, or industry judges, use these high-impact answers:
+
+### Q1: "Why didn't you just ask an LLM to decide if the loan should be approved?"
+> **Answer:** *"LLMs are probabilistic and notoriously prone to arithmetic hallucinations, inconsistent numerical thresholds, and lack of deterministic auditability. In real-world banking, credit decisions must comply with RBI/lender regulations and produce explainable audit trails. We used Python for 100% of the mathematical, eligibility, and routing logic, and restricted the LLM to interpreting qualitative nuance and generating human-readable reasoning."*
+
+### Q2: "How do you catch applicant fraud or income inflation?"
+> **Answer:** *"Our Step 5 Income Engine uses an anti-fraud conservative resolution: it parses multi-month payslips and cross-checks them against recurring bank salary credits, taking $\min(\text{Payslip Net}, \text{Bank Salary})$. If an applicant inflates their claimed income or presents fabricated payslips with higher values than actual bank deposits, our engine flags an `INCOME_MISMATCH` with exact variance percentages."*
+
+### Q3: "What is 'loan stacking' and how does TRACE detect it?"
+> **Answer:** *"Loan stacking occurs when an applicant borrows from multiple lenders simultaneously and conceals these liabilities on their application. Our Step 5.2 engine scans bank debit records for recurring loan EMIs (`category == 'emi_debit'`). If detected bank EMIs exceed declared debt by more than ₹1,000, it automatically flags an `UNDISCLOSED_LIABILITY` and recalculates the true FOIR, immediately routing high-risk overleveraged applicants to RED (Reject)."*
+
+### Q4: "How do you detect forged or altered bank statements?"
+> **Answer:** *"Our Step 5.4 Statement Reconciliation Engine validates the accounting identity $\text{Opening Balance} + \text{Total Credits} - \text{Total Debits} = \text{Closing Balance}$. If an applicant has edited transaction figures or closing totals using PDF editors, this mathematical identity breaks, triggering a `STATEMENT_ARITHMETIC_MISMATCH` and docking 30 risk points."*
+
+### Q5: "What makes your architecture enterprise-ready?"
+> **Answer:** *"Three things: First, **100% uptime resilience** through deterministic LLM fallback. Second, **hot-swappable policy management** via external JSON rules without code redeployment. Third, **complete regulatory compliance** through immutable MongoDB Atlas audit logging of every calculation, cross-check, and routing decision."*
+
+---
+
+<div align="center">
+<b>TRACE Underwriting Decision Engine</b> — Engineering reliable, auditable, and intelligent loan automation.
+</div>
