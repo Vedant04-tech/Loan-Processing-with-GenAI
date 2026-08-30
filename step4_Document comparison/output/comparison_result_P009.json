@@ -96,7 +96,7 @@
           "note": null
         }
       ],
-      "reason": "Difference = ₹521.67, percentage difference = 1.16%."
+      "reason": "Difference = Rs. 521.67, percentage difference = 1.16%."
     },
     {
       "field": "employer",
@@ -133,19 +133,19 @@
     {
       "field": "Name",
       "status": "MATCH",
-      "reason": "Both records contain the same name.",
+      "reason": "Both records contain the exact same full name.",
       "confidence": 100.0
     },
     {
       "field": "Employer",
       "status": "MATCH",
-      "reason": "Both records contain the same employer name.",
+      "reason": "Both records list the same employer name with identical spelling and punctuation.",
       "confidence": 100.0
     },
     {
       "field": "Purpose",
       "status": "NOT_AVAILABLE",
-      "reason": "Purpose field is not present in the verified information.",
+      "reason": "Purpose field is missing from the verified information.",
       "confidence": 100.0
     }
   ],
@@ -162,5 +162,5 @@
   ],
   "risk_level": "MEDIUM",
   "recommendation": "REVIEW",
-  "audit_notes": "DTI exceeds demo threshold."
+  "audit_notes": "DTI exceeds standard policy threshold."
 }

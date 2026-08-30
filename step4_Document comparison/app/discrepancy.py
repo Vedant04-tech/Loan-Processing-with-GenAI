@@ -1,67 +1,28 @@
+from typing import List
+
+
 def classify_discrepancies(
     income_result,
-    identity_status,
-    liability_status,
-    detected_emi,
-    declared_net,
-    verified_net
-):
-
+    identity_status: str,
+    liability_status: str,
+    detected_emi: float,
+    declared_net: float,
+    verified_net: float,
+) -> List[str]:
     anomalies = []
 
-    # --------------------------------
-    # Income
-    # --------------------------------
+    # Income discrepancy check (> 10% threshold)
+    if declared_net > 0 and verified_net > 0:
+        diff_pct = (abs(declared_net - verified_net) / declared_net) * 100
+        if diff_pct > 10:
+            anomalies.append("INCOME_OVERSTATED")
 
-    if (
-        declared_net > 0
-        and
-        verified_net > 0
-    ):
-
-        difference_percent = (
-
-            abs(
-                declared_net
-                -
-                verified_net
-            )
-
-            /
-            declared_net
-
-            *
-            100
-        )
-
-        if difference_percent > 10:
-
-            anomalies.append(
-                "INCOME_OVERSTATED"
-            )
-
-    # --------------------------------
-    # Identity
-    # --------------------------------
-
+    # Identity mismatch
     if identity_status == "MISMATCH":
+        anomalies.append("IDENTITY_MISMATCH")
 
-        anomalies.append(
-            "IDENTITY_MISMATCH"
-        )
-
-    # --------------------------------
-    # Liability
-    # --------------------------------
-
-    if (
-        liability_status == "MISMATCH"
-        and
-        detected_emi > 0
-    ):
-
-        anomalies.append(
-            "UNDISCLOSED_LIABILITY"
-        )
+    # Undisclosed debt
+    if liability_status == "MISMATCH" and detected_emi > 0:
+        anomalies.append("UNDISCLOSED_LIABILITY")
 
     return anomalies

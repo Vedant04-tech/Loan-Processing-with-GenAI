@@ -96,7 +96,7 @@
           "note": null
         }
       ],
-      "reason": "Difference = ₹35796.33, percentage difference = 33.0%."
+      "reason": "Difference = Rs. 35796.33, percentage difference = 33.0%."
     },
     {
       "field": "employer",
@@ -133,20 +133,20 @@
     {
       "field": "Name",
       "status": "MATCH",
-      "reason": "Both records contain the same name.",
+      "reason": "Both records contain the exact same full name.",
       "confidence": 100.0
     },
     {
       "field": "Employer",
       "status": "MATCH",
-      "reason": "Both records contain the same employer name.",
+      "reason": "Both records list 'Vertex Financial Services Ltd' as the employer.",
       "confidence": 100.0
     },
     {
       "field": "Purpose",
       "status": "NOT_AVAILABLE",
-      "reason": "Purpose field missing in verified record.",
-      "confidence": 100.0
+      "reason": "Purpose is present only in the declared information.",
+      "confidence": 0.0
     }
   ],
   "anomalies": [

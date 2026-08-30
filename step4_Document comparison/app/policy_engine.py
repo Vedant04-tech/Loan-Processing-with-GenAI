@@ -1,100 +1,40 @@
-def calculate_risk(result):
+from .models import ComparisonResult
 
+
+def calculate_risk(result: ComparisonResult) -> ComparisonResult:
     score = 0
-
     reasons = []
 
-    # -------------------------
-    # INCOME
-    # -------------------------
-
+    # Income discrepancy penalty
     if result.income_difference_percent > 10:
-
         score += 35
+        reasons.append("Declared income exceeds verified income by more than 10%.")
 
-        reasons.append(
-            "Declared income exceeds "
-            "verified income by more than 10%."
-        )
-
-    # -------------------------
-    # IDENTITY
-    # -------------------------
-
+    # Identity mismatch penalty
     if result.identity_status == "MISMATCH":
-
         score += 60
+        reasons.append("Identity mismatch detected.")
 
-        reasons.append(
-            "Identity mismatch detected."
-        )
-
-    # -------------------------
-    # LIABILITY
-    # -------------------------
-
-    if (
-        result.liability_status
-        ==
-        "MISMATCH"
-    ):
-
+    # Undisclosed liability penalty
+    if result.liability_status == "MISMATCH":
         score += 30
+        reasons.append("Potential undisclosed liability.")
 
-        reasons.append(
-            "Potential undisclosed liability."
-        )
-
-    # -------------------------
-    # DTI
-    # -------------------------
-
+    # Debt-to-income threshold penalty
     if result.dti_percent > 50:
-
         score += 35
+        reasons.append("DTI exceeds standard policy threshold.")
 
-        reasons.append(
-            "DTI exceeds demo threshold."
-        )
-
-    # -------------------------
-    # FINAL
-    # -------------------------
-
+    # Final risk level & recommendation
     if score >= 70:
-
         result.risk_level = "HIGH"
-
-        result.recommendation = (
-            "REJECT"
-        )
-
+        result.recommendation = "REJECT"
     elif score >= 30:
-
         result.risk_level = "MEDIUM"
-
-        result.recommendation = (
-            "REVIEW"
-        )
-
+        result.recommendation = "REVIEW"
     else:
-
         result.risk_level = "LOW"
+        result.recommendation = "AUTO_APPROVE"
 
-        result.recommendation = (
-            "AUTO_APPROVE"
-        )
-
-    if reasons:
-
-        result.audit_notes = (
-            " ".join(reasons)
-        )
-
-    else:
-
-        result.audit_notes = (
-            "No major demo rule triggered."
-        )
-
+    result.audit_notes = " ".join(reasons) if reasons else "No major risk triggers detected."
     return result

@@ -96,7 +96,7 @@
           "note": null
         }
       ],
-      "reason": "Difference = ₹355.00, percentage difference = 0.95%."
+      "reason": "Difference = Rs. 355.00, percentage difference = 0.95%."
     },
     {
       "field": "employer",
@@ -139,13 +139,13 @@
     {
       "field": "Employer",
       "status": "MATCH",
-      "reason": "Both records contain the same employer.",
+      "reason": "Both records contain the same employer name.",
       "confidence": 100.0
     },
     {
       "field": "Purpose",
       "status": "NOT_AVAILABLE",
-      "reason": "Purpose field is missing in the verified record.",
+      "reason": "Purpose field is missing in the verified information.",
       "confidence": 100.0
     }
   ],
@@ -165,5 +165,5 @@
   ],
   "risk_level": "HIGH",
   "recommendation": "REJECT",
-  "audit_notes": "Identity mismatch detected. Potential undisclosed liability. DTI exceeds demo threshold."
+  "audit_notes": "Identity mismatch detected. Potential undisclosed liability. DTI exceeds standard policy threshold."
 }

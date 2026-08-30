@@ -96,7 +96,7 @@
           "note": null
         }
       ],
-      "reason": "Difference = ₹39.33, percentage difference = 0.06%."
+      "reason": "Difference = Rs. 39.33, percentage difference = 0.06%."
     },
     {
       "field": "employer",
@@ -133,7 +133,7 @@
     {
       "field": "Name",
       "status": "MATCH",
-      "reason": "Both records contain the same name.",
+      "reason": "Both records contain matching full name.",
       "confidence": 100.0
     },
     {
@@ -145,7 +145,7 @@
     {
       "field": "Purpose",
       "status": "NOT_AVAILABLE",
-      "reason": "Purpose information is not present in the verified record.",
+      "reason": "Purpose field is missing in the verified information.",
       "confidence": 100.0
     }
   ],
@@ -162,5 +162,5 @@
   ],
   "risk_level": "LOW",
   "recommendation": "AUTO_APPROVE",
-  "audit_notes": "No major demo rule triggered."
+  "audit_notes": "No major risk triggers detected."
 }
