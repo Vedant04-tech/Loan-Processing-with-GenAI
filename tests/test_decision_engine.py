@@ -155,6 +155,24 @@ class TestRiskAndAnomalyEngine(unittest.TestCase):
         self.assertEqual(len(assessment.anomalies), 1)
         self.assertEqual(assessment.anomalies[0].discrepancy_type, "INCOME_MISMATCH")
 
+    def test_10_step4_identity_discrepancy_integration(self):
+        income = calculate_verified_income(100000, [{"extracted": {"net_pay": 100000}}], [{"amount": 100000, "category": "salary_credit"}])
+        ob = calculate_obligations([], [], 100000.0)
+        stmt = validate_statement_arithmetic(10000, 10000, 5000, 15000)
+        elig = check_eligibility(100000.0, 10.0, 0.0, 0.0)
+        
+        mock_step4 = {
+            "identity_status": "MISMATCH",
+            "discrepancies": [
+                {"field": "name", "status": "MISMATCH", "declared_value": "John Doe", "verified_value": "Jane Doe"}
+            ]
+        }
+        discrepancies = detect_discrepancies({}, income, ob, stmt, elig, step4_result=mock_step4)
+        id_disc = [d for d in discrepancies if d.discrepancy_type == "IDENTITY_MISMATCH"]
+        self.assertEqual(len(id_disc), 1)
+        self.assertIn("NAME", id_disc[0].evidence_summary)
+
 
 if __name__ == "__main__":
     unittest.main()
+

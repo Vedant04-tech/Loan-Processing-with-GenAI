@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
 from typing import Any
+import importlib
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 from database.db_config import get_db
 from database import crud
@@ -58,6 +62,27 @@ def run_decision_pipeline(
     evidence = crud.get_extracted_evidence(db, application_ref)
     bank_txns = crud.get_bank_transactions(db, application_ref)
 
+    # 1.1 Run Step 4 Comparison Engine using DB data
+    primary_applicant = application.get("applicants", [{}])[0] if application.get("applicants") else {}
+    step4_payload = {
+        "_id": application.get("application_ref"),
+        "applicant": {
+            "full_name": primary_applicant.get("full_name"),
+            "pan_number": primary_applicant.get("pan_number"),
+            "dob": primary_applicant.get("date_of_birth") or primary_applicant.get("dob"),
+            "aadhaar_last4": primary_applicant.get("aadhaar_last4"),
+        },
+        "documents": application.get("documents", [])
+    }
+
+    try:
+        step4_pipeline = importlib.import_module("step4_Document comparison.app.pipeline")
+        step4_result = step4_pipeline.build_pipeline_result(step4_payload)
+        crud.update_step4_comparison(db, application_ref, step4_result.model_dump())
+    except Exception as e:
+        print(f"[WARN] Step 4 Document comparison failed: {e}")
+        step4_result = None
+
     documents = application.get("documents") or []
     payslips = [d for d in documents if d.get("doc_type") in ("PAYSLIP", "payslip")]
     bank_stmts = [d for d in documents if d.get("doc_type") in ("BANK_STATEMENT", "bank_statement")]
@@ -113,6 +138,7 @@ def run_decision_pipeline(
         statement_result=statement_result,
         eligibility_result=eligibility_result,
         extracted_fields=evidence,
+        step4_result=step4_result,
     )
 
     anomaly_assessment, is_fallback = classify_anomalies_with_llm(

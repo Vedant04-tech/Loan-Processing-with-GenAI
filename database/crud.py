@@ -54,6 +54,25 @@ def update_financials(db: Database, application_ref: str, financials_data: dict)
     )
 
 
+def update_step4_comparison(db: Database, application_ref: str, comparison_data: dict):
+    """Saves Step 4 comparison results to application document and a separate comparison_results collection."""
+    db.applications.update_one(
+        {"application_ref": application_ref},
+        {"$set": {"step4_comparison": comparison_data, "updated_at": datetime.utcnow()}}
+    )
+    return db.comparison_results.update_one(
+        {"application_ref": application_ref},
+        {"$set": {**comparison_data, "updated_at": datetime.utcnow()}},
+        upsert=True
+    )
+
+
+def get_step4_comparison(db: Database, application_ref: str) -> dict | None:
+    """Fetches Step 4 comparison results for the given application."""
+    doc = db.applications.find_one({"application_ref": application_ref}, {"step4_comparison": 1})
+    return doc.get("step4_comparison") if doc else None
+
+
 def update_routing(db: Database, application_ref: str, color: str, reason: str):
     """Updates final routing outcome (green / amber / red)."""
     status = "approved" if color == "green" else ("review" if color == "amber" else "rejected")

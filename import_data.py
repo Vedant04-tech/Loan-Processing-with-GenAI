@@ -97,6 +97,8 @@ def import_application_json(db: Database, filepath: str) -> dict:
             "full_name": applicant.get("full_name"),
             "pan_number": applicant.get("pan_number"),
             "aadhaar_last4": applicant.get("aadhaar_last4"),
+            "date_of_birth": applicant.get("dob") or applicant.get("date_of_birth"),
+            "dob": applicant.get("dob") or applicant.get("date_of_birth"),
             "employer_name": payslip.get("employer_name") or "Tech Corp Ltd",
             "employment_type": "salaried",
         }],

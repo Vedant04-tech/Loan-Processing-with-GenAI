@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel, Field
 from step5_calculation.income import IncomeMetrics
 from step5_calculation.obligations import ObligationMetrics
@@ -21,6 +22,7 @@ def detect_discrepancies(
     statement_result: StatementValidationResult,
     eligibility_result: EligibilityResult,
     extracted_fields: list[dict] = None,
+    step4_result: Any = None,
 ) -> list[Discrepancy]:
     discrepancies = []
 
@@ -88,5 +90,41 @@ def detect_discrepancies(
                 evidence_summary="; ".join(eligibility_result.reasons),
             )
         )
+
+    # 6. Identity Mismatch (from Step 4)
+    if step4_result:
+        if isinstance(step4_result, dict):
+            identity_status = step4_result.get("identity_status")
+            step4_discs = step4_result.get("discrepancies", [])
+        else:
+            identity_status = getattr(step4_result, "identity_status", None)
+            step4_discs = getattr(step4_result, "discrepancies", [])
+
+        if identity_status in ("MISMATCH", "PARTIAL_MATCH"):
+            reasons = []
+            for comp in step4_discs:
+                if isinstance(comp, dict):
+                    fld = comp.get("field")
+                    status = comp.get("status")
+                    dec_val = comp.get("declared_value")
+                    ver_val = comp.get("verified_value")
+                else:
+                    fld = getattr(comp, "field", None)
+                    status = getattr(comp, "status", None)
+                    dec_val = getattr(comp, "declared_value", None)
+                    ver_val = getattr(comp, "verified_value", None)
+
+                if fld in ("name", "dob", "pan_number") and status in ("MISMATCH", "PARTIAL_MATCH"):
+                    reasons.append(f"{fld.upper()}: declared '{dec_val}' vs verified '{ver_val}' ({status})")
+            
+            evidence_str = " / ".join(reasons) if reasons else f"Identity status is {identity_status}"
+            discrepancies.append(
+                Discrepancy(
+                    discrepancy_type="IDENTITY_MISMATCH",
+                    declared_value="Declared ID Details",
+                    verified_value=f"Status: {identity_status}",
+                    evidence_summary=evidence_str
+                )
+            )
 
     return discrepancies
