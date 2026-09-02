@@ -38,35 +38,35 @@ TRACE enforces a strict **separation of concerns**:
 ```mermaid
 flowchart TD
     subgraph INGESTION["1. Input Data Layer"]
-        A1[Extracted Document Fields]
-        A2[Bank Statement Transactions]
-        A3[Application Form Claims]
+        A1["Extracted Document Fields"]
+        A2["Bank Statement Transactions"]
+        A3["Application Form Claims"]
     end
 
     subgraph STEP4["2. Step 4 Document Cross-Comparison"]
         S4_1["Identity Cross-Matching (Name, PAN, DOB)"]
-        S4_2["Income & Employer Match"]
+        S4_2["Income and Employer Match"]
         S4_3["Writeback to comparison_results"]
     end
 
     subgraph STEP5["3. Step 5 Calculation Engine (Deterministic)"]
-        B1["5.1 Income Calculation<br/>min(Payslip Avg, Bank Salary Credits)"]
-        B2["5.2 & 5.3 Obligations & FOIR<br/>Bank EMI Debit Scan + Undisclosed Debt"]
-        B3["5.4 Balance Reconciliation<br/>Op + Credits - Debits == Cl"]
-        B4["5.5 Policy Eligibility<br/>personal_loan_rules.json evaluation"]
+        B1["5.1 Income Calculation<br>min(Payslip Avg, Bank Salary Credits)"]
+        B2["5.2 and 5.3 Obligations and FOIR<br>Bank EMI Debit Scan + Undisclosed Debt"]
+        B3["5.4 Balance Reconciliation<br>Op + Credits - Debits == Cl"]
+        B4["5.5 Policy Eligibility<br>personal_loan_rules.json evaluation"]
     end
 
-    subgraph STEP6["4. Step 6 Risk & Anomaly Engine"]
-        C1["6.1 Discrepancy Discovery<br/>Step 4 ID + Step 5 Financial Gaps"]
-        C2["6.2 LangChain Groq Classifier<br/>Structured Pydantic Output + Fallback"]
-        C3["6.3 100-Point Risk Scoring & Routing<br/>Mathematical Deductions + 3-Tier Routing"]
+    subgraph STEP6["4. Step 6 Risk and Anomaly Engine"]
+        C1["6.1 Discrepancy Discovery<br>Step 4 ID + Step 5 Financial Gaps"]
+        C2["6.2 LangChain Groq Classifier<br>Structured Pydantic Output + Fallback"]
+        C3["6.3 100-Point Risk Scoring and Routing<br>Mathematical Deductions + 3-Tier Routing"]
     end
 
-    subgraph DECISION["5. Decision & Persistence Layer"]
-        D1["🟢 GREEN (Auto Approve)"]
-        D2["🟡 AMBER (Human Review)"]
-        D3["🔴 RED (Reject)"]
-        D4[("MongoDB Atlas Collections<br/>Applications, Comparison Results, Audit Trail")]
+    subgraph DECISION["5. Decision and Persistence Layer"]
+        D1["GREEN (Auto Approve)"]
+        D2["AMBER (Human Review)"]
+        D3["RED (Reject)"]
+        D4[("MongoDB Atlas Collections<br>Applications, Comparison Results, Audit Trail")]
     end
 
     INGESTION --> STEP4
@@ -75,9 +75,14 @@ flowchart TD
     STEP4 -.-> C1
     C1 --> C2
     C2 --> C3
-    C3 --> D1 & D2 & D3
-    D1 & D2 & D3 --> D4
+    C3 --> D1
+    C3 --> D2
+    C3 --> D3
+    D1 --> D4
+    D2 --> D4
+    D3 --> D4
 ```
+
 
 ---
 

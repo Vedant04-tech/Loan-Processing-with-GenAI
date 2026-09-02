@@ -6,18 +6,11 @@
 [![MongoDB Atlas](https://img.shields.io/badge/Database-MongoDB%20Atlas-forestgreen?logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
 [![LangChain](https://img.shields.io/badge/Orchestration-LangChain%20%2F%20Groq-coral?logo=langchain&logoColor=white)](https://langchain.com)
 [![Pydantic v2](https://img.shields.io/badge/Validation-Pydantic%20v2-e92063?logo=pydantic&logoColor=white)](https://docs.pydantic.dev)
-<<<<<<< HEAD
-[![Test Suite](https://img.shields.io/badge/Tests-14%2F14%20Passing-brightgreen?logo=checkmarx&logoColor=white)](tests/test_decision_engine.py)
-=======
-[![Test Suite](https://img.shields.io/badge/Tests-14%2F14%20Passing-brightgreen?logo=checkmarx&logoColor=white)](file:///g:/Inventer's%20Zone/MyProjects/Cognizent/My%20Part/tests/test_decision_engine.py)
-
->>>>>>> 120fcbf3f6b0fc4ddc39754097e91a188b618296
 [![Architecture](https://img.shields.io/badge/Architecture-Deterministic%20%2B%20GenAI%20Hybrid-purple)](#system-architecture)
 
 **Automated Multi-Document Cross-Comparison (Step 4), Deterministic Financial Calculations (Step 5), and GenAI Anomaly/Risk Routing (Step 6) for the TRACE Loan Origination Platform.**
 
 [📖 Complete Handover & Technical Guide](GUIDE_AND_HANDOVER.md) • [🚀 Quick Start](#-quick-start) • [📐 Architecture](#-system-architecture) • [✨ Key Highlights](#-key-features--capabilities) • [🧪 Benchmark Results](#-benchmark--real-world-verification-results)
-
 
 </div>
 
@@ -38,42 +31,42 @@ The **TRACE Underwriting Platform** establishes a **strict hybrid separation of 
 
 ```mermaid
 flowchart TD
-    subgraph INGESTION["📥 Upstream Ingestion (Steps 1–3)"]
-        A1[Extracted Document Data<br/>Payslips, PAN, Form 16]
-        A2[Bank Statement Transactions<br/>Credits, Debits, Balances]
-        A3[Loan Application Form<br/>Declared Income & Debt]
+    subgraph INGESTION["1. Upstream Ingestion (Steps 1 to 3)"]
+        A1["Extracted Document Data<br>Payslips, PAN, Form 16"]
+        A2["Bank Statement Transactions<br>Credits, Debits, Balances"]
+        A3["Loan Application Form<br>Declared Income and Debt"]
     end
 
-    subgraph STEP4["📑 STEP 4: Document Cross-Comparison Engine"]
-        S4_1["Identity Cross-Matching<br/>• Name, PAN, DOB vs Proofs<br/>• Deterministic + Semantic Normalization"]
-        S4_2["Income & Employer Match<br/>• Payslip vs Loan Application"]
-        S4_3["Writeback: comparison_results<br/>& applications.step4_comparison"]
+    subgraph STEP4["2. STEP 4: Document Cross-Comparison Engine"]
+        S4_1["Identity Cross-Matching<br>Name, PAN, DOB vs Proofs<br>Deterministic and Semantic"]
+        S4_2["Income and Employer Match<br>Payslip vs Loan Application"]
+        S4_3["Writeback: comparison_results<br>and applications.step4_comparison"]
     end
 
-    subgraph STEP5["⚙️ STEP 5: Deterministic Calculation Engine"]
-        B1["5.1 Income Engine<br/>• Payslip Avg Net Pay<br/>• Bank Salary Credits<br/>• Min-Bound Resolution<br/>• Variance %"]
-        B2["5.2 & 5.3 Obligations & FOIR<br/>• Bank EMI Debit Scan<br/>• Undisclosed Debt Hunter<br/>• Proposed Loan EMI<br/>• FOIR % & Disposable Inc."]
-        B3["5.4 Balance Reconciliation<br/>Op + Credits - Debits == Cl<br/>Tolerance: ±Rs. 5.00"]
-        B4["5.5 Policy Eligibility Check<br/>Dynamic JSON Rules<br/>Pass / Fail + Itemized Reasons"]
+    subgraph STEP5["3. STEP 5: Deterministic Calculation Engine"]
+        B1["5.1 Income Engine<br>Payslip Avg Net Pay<br>Bank Salary Credits<br>Min-Bound Resolution"]
+        B2["5.2 and 5.3 Obligations and FOIR<br>Bank EMI Debit Scan<br>Undisclosed Debt Hunter<br>FOIR % and Disposable Income"]
+        B3["5.4 Balance Reconciliation<br>Op + Credits - Debits == Cl<br>Tolerance: +/- Rs. 5.00"]
+        B4["5.5 Policy Eligibility Check<br>Dynamic JSON Rules<br>Pass / Fail + Itemized Reasons"]
     end
 
-    subgraph STEP6["🧠 STEP 6: Risk & Anomaly Engine"]
-        C1["6.1 Deterministic Discrepancy Discovery<br/>• Step 4 Identity Mismatch<br/>• Income Mismatch<br/>• Undisclosed Liability<br/>• Statement Error"]
-        C2["6.2 LangChain Groq Structured Classifier<br/>Classifies Severity (Minor / Mod / Major)<br/>Zero-Downtime Deterministic Fallback"]
-        C3["6.3 100-Point Risk Scoring & Routing<br/>• Base 100 with Math Deductions<br/>• Traffic-Light 3-Tier Routing"]
+    subgraph STEP6["4. STEP 6: Risk and Anomaly Engine"]
+        C1["6.1 Deterministic Discrepancy Discovery<br>Step 4 ID + Step 5 Financial Gaps"]
+        C2["6.2 LangChain Groq Structured Classifier<br>Classifies Severity (Minor / Mod / Major)<br>Zero-Downtime Deterministic Fallback"]
+        C3["6.3 100-Point Risk Scoring and Routing<br>Base 100 with Math Deductions<br>Traffic-Light 3-Tier Routing"]
     end
 
-    subgraph ROUTING["🚦 3-Tier Underwriting Decisions"]
-        R1["🟢 GREEN (Auto Approve)<br/>Score ≥ 80 | Zero Major Anomalies"]
-        R2["🟡 AMBER (Human Review)<br/>Score 50–79 | Moderate Variances"]
-        R3["🔴 RED (Reject)<br/>Score < 50 | Fraud / High FOIR / Tampering"]
+    subgraph ROUTING["5. 3-Tier Underwriting Decisions"]
+        R1["GREEN (Auto Approve)<br>Score >= 80 | Zero Major Anomalies"]
+        R2["AMBER (Human Review)<br>Score 50-79 | Moderate Variances"]
+        R3["RED (Reject)<br>Score < 50 | Fraud / High FOIR / Tampering"]
     end
 
-    subgraph STORAGE["🗄️ MongoDB Atlas Writeback Layer"]
+    subgraph STORAGE["6. MongoDB Atlas Writeback Layer"]
         DB1[("applications.financials")]
         DB2[("applications.step4_comparison")]
         DB3[("applications.cross_checks")]
-        DB4[("applications.risk & routing")]
+        DB4[("applications.risk and routing")]
         DB5[("audit_logs immutable trail")]
     end
 
@@ -86,6 +79,7 @@ flowchart TD
     C3 --> ROUTING
     ROUTING --> STORAGE
 ```
+
 
 ---
 
