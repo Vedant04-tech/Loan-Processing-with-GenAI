@@ -139,6 +139,7 @@ def run_decision_pipeline(
         eligibility_result=eligibility_result,
         extracted_fields=evidence,
         step4_result=step4_result,
+        policy_name=policy_name,
     )
 
     anomaly_assessment, is_fallback = classify_anomalies_with_llm(
@@ -160,7 +161,9 @@ def run_decision_pipeline(
         classified_anomalies=classified_list,
         is_llm_fallback=is_fallback,
         policy_name=policy_name,
+        step4_result=step4_result,
     )
+
 
     # 4. MongoDB Writeback
     crud.update_financials(db, application_ref, {

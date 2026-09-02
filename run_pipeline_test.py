@@ -12,7 +12,7 @@ def run_test():
     print("=" * 60)
     
     db = get_db()
-    app_ref = "P002"
+    app_ref = "P017"
     json_path = os.path.join("step4_Document comparison", "extracted_data", f"{app_ref}.json")
     
     if not os.path.exists(json_path):

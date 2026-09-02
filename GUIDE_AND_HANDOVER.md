@@ -444,11 +444,11 @@ print(f"Summary:            {result.underwriting_summary}")
 
 ## 8. Automated Test Suite & Verification
 
-The test suite covers **10 distinct underwriting scenarios**:
+The test suite covers **14 comprehensive underwriting and integration scenarios**:
 
 ### 8.1 Running the Tests
 ```bash
-# Run all 10 tests
+# Run all 14 tests
 python -m unittest tests.test_decision_engine
 
 # Run with verbose output
@@ -469,12 +469,16 @@ python -m unittest -v tests.test_decision_engine
 | **Test 8** | `test_8_major_anomaly_routing_red` | Major income overstatement + undisclosed debt | Routed to 🔴 **RED** (`reject`), Score $< 50$ |
 | **Test 9** | `test_9_llm_fallback_resilience` | LLM offline / missing API key scenario | Seamlessly executes rule fallback without errors |
 | **Test 10**| `test_10_step4_identity_discrepancy_integration` | Step 4 identity mismatch integration | Discovers `IDENTITY_MISMATCH` with evidence from Step 4 |
+| **Test 11**| `test_11_dynamic_policy_deduction_weights` | Dynamic policy scoring weights modification | Confirms altering policy deduction weights alters score dynamically |
+| **Test 12**| `test_12_policy_loader_fallback_validity` | Safe policy fallback dictionary parsing | Validates fallback dict structure without Python syntax errors |
+| **Test 13**| `test_13_step4_declared_emi_extraction` | Declared EMI extraction from loan application | Accurately extracts and sums applicant declared liabilities |
+| **Test 14**| `test_14_unified_step4_step6_risk_consistency` | Step 4 and Step 6 risk engine unification | Ensures Step 4 document comparison rejection prevents auto-approval |
 
 ---
 
 ## 9. Policy Configuration & Customization
 
-Underwriting policies are stored in JSON format in `policies/` and loaded dynamically via `policies/policy_loader.py`.
+Underwriting policies are stored in JSON format in `policies/` and loaded dynamically via `policies/policy_loader.py`. All deduction weights, routing cutoffs, income limits, and FOIR thresholds are loaded into the risk and decision engine at runtime.
 
 ### Policy File: `policies/personal_loan_rules.json`
 ```json
@@ -568,8 +572,15 @@ Whenever `run_decision_pipeline()` executes, it writes back complete underwritin
 ### Q5: "How do you detect forged or altered bank statements?"
 > **Answer:** *"Our Step 5.4 Statement Reconciliation Engine validates the accounting identity $\text{Opening Balance} + \text{Total Credits} - \text{Total Debits} = \text{Closing Balance}$. If an applicant has edited transaction figures or closing totals using PDF editors, this mathematical identity breaks, triggering a `STATEMENT_ARITHMETIC_MISMATCH` and docking 30 risk points."*
 
+### Q6: "Why are P004 and P006 included in your benchmark applicant pool?"
+> **Answer:** *"Applicants P002 through P017 form a diverse 10-applicant validation suite. Specifically, P003 and P004 serve as pristine clean control applicants (e.g. Abdul Basu, P004 has 0.01% variance and 29.3% FOIR) to prove 0% false-positive rejection rates on legitimate prime borrowers. Conversely, P006 (Logan Acharya) demonstrates severe overleverage (FOIR 99.49%), proving that our engine catches hidden debt strain even when document names and payslips match."*
+
+### Q7: "How are Step 4 (Document Comparison) and Step 6 (Final Risk Decision) synchronized?"
+> **Answer:** *"Step 4's document-level comparison recommendations, identity flags, and audit notes are directly ingested into Step 6's discrepancy detection and risk rules. If Step 4 flags an identity mismatch or recommends REJECT, Step 6 guarantees the final decision can never be GREEN (Auto-Approve) and routes it to RED/AMBER with the exact audit reasoning preserved."*
+
 ---
 
 <div align="center">
 <b>TRACE Underwriting Decision Engine</b> — Engineering reliable, auditable, and intelligent loan automation.
 </div>
+

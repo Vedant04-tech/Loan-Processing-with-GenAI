@@ -75,7 +75,13 @@ def extract_liabilities(payload: Dict[str, Any]) -> Dict[str, Any]:
     loan = get_doc(payload, "LOAN_APPLICATION")
     bank = get_doc(payload, "BANK_STATEMENT")
 
-    declared_liabilities = loan.get("liabilities", []) or []
+    declared_liabilities = (
+        loan.get("liabilities")
+        or payload.get("financials", {}).get("declared_liabilities")
+        or payload.get("financials", {}).get("loan_request", {}).get("liabilities")
+        or payload.get("liabilities")
+        or []
+    )
     emi_transactions = [
         tx for tx in bank.get("transactions", [])
         if tx.get("category") == "emi_debit"
