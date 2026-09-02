@@ -72,5 +72,6 @@ Return ONLY valid JSON matching this schema:
             )
         return findings
     except Exception as e:
-        print(f"[WARN] Semantic LLM comparison skipped: {e}")
+        err_msg = str(e).encode("ascii", "replace").decode("ascii")
+        print(f"[WARN] Semantic LLM comparison skipped: {err_msg}")
         return []

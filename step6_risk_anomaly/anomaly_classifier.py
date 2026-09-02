@@ -53,7 +53,9 @@ DISCREPANCIES DETECTED:
             if isinstance(result, AnomalyAssessment):
                 return result, False
         except Exception as e:
-            print(f"[WARN] LLM fallback active: {e}")
+            err_msg = str(e).encode("ascii", "replace").decode("ascii")
+            print(f"[WARN] LLM fallback active: {err_msg}")
+
 
     # 2. Deterministic Safe Fallback
     fallback_items = []
