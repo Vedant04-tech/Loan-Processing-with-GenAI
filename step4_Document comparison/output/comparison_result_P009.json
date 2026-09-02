@@ -145,7 +145,7 @@
     {
       "field": "Purpose",
       "status": "NOT_AVAILABLE",
-      "reason": "Purpose field is missing from the verified information.",
+      "reason": "Purpose information is missing from the verified record.",
       "confidence": 100.0
     }
   ],

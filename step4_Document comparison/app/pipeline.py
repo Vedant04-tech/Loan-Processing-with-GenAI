@@ -50,8 +50,11 @@ def build_pipeline_result(payload: Dict[str, Any]) -> ComparisonResult:
     # 6. Liability Status
     declared_liabilities = liabilities["declared_liabilities"]
     detected_emi = liabilities["detected_emi"]
+    declared_emi = sum(float(l.get("emi_amount", 0) or l.get("emi", 0)) for l in declared_liabilities)
 
     if not declared_liabilities and detected_emi == 0:
+        liability_status = "MATCH"
+    elif declared_emi > 0 and abs(declared_emi - detected_emi) <= 1000.0:
         liability_status = "MATCH"
     elif not declared_liabilities and detected_emi > 0:
         liability_status = "MISMATCH"
@@ -91,7 +94,7 @@ def build_pipeline_result(payload: Dict[str, Any]) -> ComparisonResult:
         verified_monthly_net=verified_net,
         income_difference=round(income_difference, 2),
         income_difference_percent=income_difference_percent,
-        declared_emi=0.0,
+        declared_emi=round(declared_emi, 2),
         detected_emi=detected_emi,
         dti_percent=dti,
         discrepancies=deterministic_results,
@@ -111,6 +114,7 @@ def build_pipeline_result(payload: Dict[str, Any]) -> ComparisonResult:
         recommendation="REVIEW",
         audit_notes="",
     )
+
 
     # 11. Run Policy Evaluation
     return calculate_risk(result)

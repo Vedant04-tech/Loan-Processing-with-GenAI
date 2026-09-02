@@ -139,13 +139,13 @@
     {
       "field": "Employer",
       "status": "MISMATCH",
-      "reason": "Declared employer 'Freshcart Retail Pvt Ltd' differs from verified employer 'Bharat Steel & Alloys Ltd'.",
+      "reason": "Declared employer differs from verified employer.",
       "confidence": 100.0
     },
     {
       "field": "Purpose",
       "status": "NOT_AVAILABLE",
-      "reason": "Purpose field is missing in the verified information.",
+      "reason": "Purpose not present in verified information.",
       "confidence": 100.0
     }
   ],
