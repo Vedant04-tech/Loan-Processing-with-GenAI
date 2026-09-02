@@ -1,0 +1,38 @@
+{
+  "applicant_id": "P009",
+  "income_metrics": {
+    "declared_monthly_income": 45160.0,
+    "avg_payslip_income": 45681.67,
+    "avg_salary_credit": 45859.83,
+    "verified_monthly_income": 45681.67,
+    "income_variance": 521.67,
+    "income_variance_percent": 1.14
+  },
+  "obligation_metrics": {
+    "declared_total_emi": 5660.0,
+    "detected_bank_monthly_emi": 33960.0,
+    "undisclosed_liability_gap": 28300.0,
+    "total_existing_emis": 33960.0,
+    "proposed_emi": 4226.45,
+    "total_monthly_obligations": 38186.45,
+    "foir_percentage": 83.59,
+    "disposable_income": 7495.22,
+    "has_undisclosed_liabilities": true
+  },
+  "statement_validation": {
+    "is_valid": false,
+    "status": "MISMATCH",
+    "expected_closing_balance": 66975.72,
+    "actual_closing_balance": 64993.72,
+    "difference_amount": 1982.0,
+    "message": "Arithmetic error: Expected Rs. 66,975.72 vs Actual Rs. 64,993.72 (diff: Rs. 1,982.00)"
+  },
+  "eligibility_result": {
+    "passed": false,
+    "status": "FAIL",
+    "reasons": [
+      "FOIR 83.59% exceeds policy threshold of 50.0%",
+      "Undisclosed debt of Rs. 28,300.00 exceeds tolerance"
+    ]
+  }
+}

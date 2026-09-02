@@ -1,0 +1,37 @@
+{
+  "applicant_id": "P002",
+  "income_metrics": {
+    "declared_monthly_income": 108462.0,
+    "avg_payslip_income": 72665.67,
+    "avg_salary_credit": 72591.17,
+    "verified_monthly_income": 72591.17,
+    "income_variance": 35870.83,
+    "income_variance_percent": 49.41
+  },
+  "obligation_metrics": {
+    "declared_total_emi": 0.0,
+    "detected_bank_monthly_emi": 0.0,
+    "undisclosed_liability_gap": 0.0,
+    "total_existing_emis": 0.0,
+    "proposed_emi": 14957.62,
+    "total_monthly_obligations": 14957.62,
+    "foir_percentage": 20.61,
+    "disposable_income": 57633.55,
+    "has_undisclosed_liabilities": false
+  },
+  "statement_validation": {
+    "is_valid": true,
+    "status": "MATCH",
+    "expected_closing_balance": 114984.38,
+    "actual_closing_balance": 114984.38,
+    "difference_amount": 0.0,
+    "message": "Reconciled accurately"
+  },
+  "eligibility_result": {
+    "passed": false,
+    "status": "FAIL",
+    "reasons": [
+      "Income overstatement (49.41%) exceeds 20.0% limit"
+    ]
+  }
+}

@@ -203,9 +203,10 @@ class TestRiskAndAnomalyEngine(unittest.TestCase):
             },
             "routing_thresholds": {"green_min_score": 80.0, "amber_min_score": 50.0},
         }
-        with patch("step6_risk_anomaly.risk_rules.load_policy", return_value=custom_policy):
+        with patch("step6_risk_anomaly.app.risk_rules.load_policy", return_value=custom_policy):
             custom_res = calculate_risk_and_routing(income, ob, stmt, elig, classified_anomalies=anomalies)
             self.assertEqual(custom_res.score, 95.0)
+
 
     def test_12_policy_loader_fallback_validity(self):
         from policies.policy_loader import load_policy

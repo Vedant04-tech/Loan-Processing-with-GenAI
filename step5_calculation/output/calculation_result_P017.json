@@ -1,0 +1,39 @@
+{
+  "applicant_id": "P017",
+  "income_metrics": {
+    "declared_monthly_income": 282480.0,
+    "avg_payslip_income": 281779.33,
+    "avg_salary_credit": 155147.5,
+    "verified_monthly_income": 155147.5,
+    "income_variance": 127332.5,
+    "income_variance_percent": 82.07
+  },
+  "obligation_metrics": {
+    "declared_total_emi": 33460.0,
+    "detected_bank_monthly_emi": 200760.0,
+    "undisclosed_liability_gap": 167300.0,
+    "total_existing_emis": 200760.0,
+    "proposed_emi": 41351.82,
+    "total_monthly_obligations": 242111.82,
+    "foir_percentage": 156.05,
+    "disposable_income": 0.0,
+    "has_undisclosed_liabilities": true
+  },
+  "statement_validation": {
+    "is_valid": true,
+    "status": "MATCH",
+    "expected_closing_balance": 615061.28,
+    "actual_closing_balance": 615061.28,
+    "difference_amount": 0.0,
+    "message": "Reconciled accurately"
+  },
+  "eligibility_result": {
+    "passed": false,
+    "status": "FAIL",
+    "reasons": [
+      "FOIR 156.05% exceeds policy threshold of 50.0%",
+      "Income overstatement (82.07%) exceeds 20.0% limit",
+      "Undisclosed debt of Rs. 167,300.00 exceeds tolerance"
+    ]
+  }
+}

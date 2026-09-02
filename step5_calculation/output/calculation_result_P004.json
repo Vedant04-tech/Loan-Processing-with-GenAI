@@ -1,0 +1,37 @@
+{
+  "applicant_id": "P004",
+  "income_metrics": {
+    "declared_monthly_income": 139742.0,
+    "avg_payslip_income": 139742.0,
+    "avg_salary_credit": 139725.33,
+    "verified_monthly_income": 139725.33,
+    "income_variance": 16.67,
+    "income_variance_percent": 0.01
+  },
+  "obligation_metrics": {
+    "declared_total_emi": 0.0,
+    "detected_bank_monthly_emi": 0.0,
+    "undisclosed_liability_gap": 0.0,
+    "total_existing_emis": 0.0,
+    "proposed_emi": 40953.24,
+    "total_monthly_obligations": 40953.24,
+    "foir_percentage": 29.31,
+    "disposable_income": 98772.09,
+    "has_undisclosed_liabilities": false
+  },
+  "statement_validation": {
+    "is_valid": true,
+    "status": "MATCH",
+    "expected_closing_balance": 646911.46,
+    "actual_closing_balance": 646911.46,
+    "difference_amount": 0.0,
+    "message": "Reconciled accurately"
+  },
+  "eligibility_result": {
+    "passed": true,
+    "status": "PASS",
+    "reasons": [
+      "All policy criteria satisfied."
+    ]
+  }
+}

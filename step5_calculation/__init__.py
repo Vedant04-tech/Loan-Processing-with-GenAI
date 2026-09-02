@@ -1,7 +1,15 @@
-from step5_calculation.income import calculate_verified_income, IncomeMetrics
-from step5_calculation.obligations import calculate_obligations, ObligationMetrics
-from step5_calculation.statement import validate_statement_arithmetic, StatementValidationResult
-from step5_calculation.eligibility import check_eligibility, EligibilityResult
+from step5_calculation.app import (
+    calculate_verified_income,
+    IncomeMetrics,
+    calculate_obligations,
+    ObligationMetrics,
+    validate_statement_arithmetic,
+    StatementValidationResult,
+    check_eligibility,
+    EligibilityResult,
+    build_step5_result,
+    Step5Result,
+)
 
 __all__ = [
     "calculate_verified_income",
@@ -12,4 +20,6 @@ __all__ = [
     "StatementValidationResult",
     "check_eligibility",
     "EligibilityResult",
+    "build_step5_result",
+    "Step5Result",
 ]

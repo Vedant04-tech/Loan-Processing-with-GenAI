@@ -1,0 +1,108 @@
+import json
+import os
+from typing import List, Tuple
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
+from .schemas import AnomalyAssessment, ClassifiedAnomaly, Discrepancy
+from step5_calculation.app.models import IncomeMetrics, ObligationMetrics, StatementValidationResult, EligibilityResult
+
+load_dotenv()
+
+
+def classify_anomalies_with_llm(
+    applicant_data: dict,
+    income_metrics: IncomeMetrics,
+    obligation_metrics: ObligationMetrics,
+    statement_result: StatementValidationResult,
+    eligibility_result: EligibilityResult,
+    discrepancies: List[Discrepancy],
+) -> Tuple[AnomalyAssessment, bool]:
+    """
+    Step 6.2: Uses LangChain ChatGroq with structured Pydantic output to evaluate
+    severity (Minor / Moderate / Major) of pre-detected discrepancies.
+    Includes deterministic fallback.
+    """
+    if not discrepancies:
+        return AnomalyAssessment(
+            anomalies=[],
+            underwriting_summary="All document checks and calculations verified without discrepancies.",
+            suggested_actions=["Confirm applicant identity match across KYC proofs", "Verify one-click fast-track sign-off for loan disbursement"]
+        ), False
+
+    groq_api_key = os.getenv("GROQ_API_KEY")
+
+    # 1. ChatGroq Structured LLM call
+    if groq_api_key and groq_api_key != "your_groq_api_key_here":
+        try:
+            llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0, groq_api_key=groq_api_key, max_retries=1)
+            structured_llm = llm.with_structured_output(AnomalyAssessment)
+
+            prompt = f"""
+You are an Underwriting Anomaly Classifier. Classify the severity of each pre-detected discrepancy into Minor, Moderate, or Major.
+Do NOT calculate numbers.
+
+Also generate 2-4 concrete, actionable verification steps (suggested_actions) for the human loan officer (e.g. 'Call employer HR to confirm employment', 'Request 3 additional months of bank statements', 'Obtain loan NOC for unstated EMI').
+
+APPLICANT CONTEXT:
+- Name: {(applicant_data.get('applicants') or [{}])[0].get('full_name')}
+- Verified Monthly Income: Rs. {income_metrics.verified_monthly_income:,.2f}
+- FOIR: {obligation_metrics.foir_percentage}%
+- Statement Status: {statement_result.status}
+- Eligibility: {eligibility_result.status}
+
+DISCREPANCIES DETECTED:
+{json.dumps([d.model_dump() for d in discrepancies], indent=2)}
+"""
+            result = structured_llm.invoke(prompt)
+            if isinstance(result, AnomalyAssessment):
+                return result, False
+        except Exception as e:
+            err_msg = str(e).encode("ascii", "replace").decode("ascii")
+            print(f"[WARN] LLM fallback active: {err_msg}")
+
+    # 2. Deterministic Safe Fallback
+    fallback_items = []
+    actions = []
+    for d in discrepancies:
+        t = d.discrepancy_type
+        if t == "INCOME_MISMATCH":
+            sev = "Major" if (d.difference_percent or 0) > 15.0 else ("Moderate" if (d.difference_percent or 0) > 5.0 else "Minor")
+            reason = f"Income variance of {d.difference_percent}% between application and salary documents."
+            actions.append("Request Form 16 / ITR acknowledgement to corroborate salary credits vs payslip gross.")
+        elif t == "UNDISCLOSED_LIABILITY":
+            sev = "Major" if (d.difference_amount or 0) > 10000.0 else "Moderate"
+            reason = f"Undisclosed monthly EMI of Rs. {d.difference_amount:,.2f} found in bank transactions."
+            actions.append(f"Obtain loan statement or NOC for detected recurring EMI debit of Rs. {d.difference_amount:,.2f}.")
+        elif t == "STATEMENT_ARITHMETIC_MISMATCH":
+            sev = "Major"
+            reason = d.evidence_summary
+            actions.append("Request original digitally-signed e-statement PDF directly from banking portal.")
+        elif t == "ELIGIBILITY_FAILURE":
+            sev = "Major"
+            reason = d.evidence_summary
+            actions.append("Review credit committee policy exceptions for FOIR / income requirement breaches.")
+        elif t == "IDENTITY_MISMATCH":
+            sev = "Major"
+            reason = d.evidence_summary
+            actions.append("Perform video KYC / biometric re-verification against national identity database.")
+        elif t == "MISSING_DOCUMENT":
+            sev = "Major"
+            reason = d.evidence_summary
+            actions.append(f"Request applicant upload missing document ({d.verified_value}).")
+        else:
+            sev = "Moderate"
+            reason = d.evidence_summary
+            actions.append(f"Verify discrepancy details for {t} against original records.")
+
+        fallback_items.append(ClassifiedAnomaly(discrepancy_type=t, severity=sev, reasoning=reason))
+
+    # De-duplicate actions
+    unique_actions = list(dict.fromkeys(actions))
+    if not unique_actions:
+        unique_actions = ["Confirm applicant identity match across KYC proofs", "Perform final KYC OTP confirmation before disbursement"]
+
+    return AnomalyAssessment(
+        anomalies=fallback_items,
+        underwriting_summary=f"Evaluated {len(fallback_items)} discrepancy(ies) via deterministic underwriting rules.",
+        suggested_actions=unique_actions,
+    ), True
