@@ -163,17 +163,26 @@ trace_db/
   "status": "approved", // "pending" | "approved" | "review" | "rejected"
   "routing": {
     "color": "green", // "green" | "amber" | "red"
-    "reason": "Application verified across all documents with low debt-to-income ratio and zero policy violations."
+    "reason": "Fast-track: all checks passed, no discrepancies. Recommended for expedited approver sign-off."
   },
   "risk": {
     "score": 100.0,
     "grade": "Low", // "Low" (≥80) | "Moderate" (50-79) | "High" (<50)
-    "recommendation": "auto_approve", // "auto_approve" | "human_review" | "reject"
+    "recommendation": "recommend_approve", // "recommend_approve" | "recommend_review" | "recommend_reject"
+    "requires_human_signoff": true, // Structurally enforced human-in-the-loop guarantee
+    "reviewer_checklist": [
+      "Confirm applicant identity match across KYC proofs",
+      "Verify one-click fast-track sign-off for loan disbursement"
+    ],
+    "counterfactual_note": "Meets all automated underwriting guidelines for fast-track approval.",
     "factors": {
-      "income_consistency": "Verified",
-      "employment_stability": "Stable",
-      "credit_behaviour": "Good",
-      "emi_burden": "Low"
+      "base_score": 100.0,
+      "major_anomalies_deduction": 0.0,
+      "moderate_anomalies_deduction": 0.0,
+      "minor_anomalies_deduction": 0.0,
+      "statement_arithmetic_deduction": 0.0,
+      "eligibility_failure_deduction": 0.0,
+      "final_calculated_score": 100.0
     }
   },
   "financials": {
@@ -190,6 +199,7 @@ trace_db/
       "tenure_months": 36
     }
   },
+
   "step4_comparison": {
     "identity_status": "MATCH",
     "income_status": "MATCH",
@@ -427,8 +437,11 @@ result = run_decision_pipeline(
 print("--- UNDERWRITING OUTCOME ---")
 print(f"Routing Decision:   {result.routing_color.upper()}") # GREEN / AMBER / RED
 print(f"Status:             {result.status}")                # approved / review / rejected
-print(f"Recommendation:     {result.recommendation}")        # auto_approve / human_review / reject
+print(f"Recommendation:     {result.recommendation}")        # recommend_approve / recommend_review / recommend_reject
+print(f"Human Sign-off:     {result.requires_human_signoff}")# True (strictly enforced)
 print(f"Risk Score:         {result.risk_score} / 100 ({result.risk_grade})")
+print(f"Checklist:          {result.reviewer_checklist}")
+print(f"Counterfactual:     {result.counterfactual_note}")
 
 print("\n--- DETERMINISTIC FINANCIALS ---")
 print(f"Verified Income:    Rs. {result.income_metrics.verified_monthly_income:,.2f}")
@@ -450,11 +463,11 @@ print(f"Summary:            {result.underwriting_summary}")
 
 ## 8. Automated Test Suite & Verification
 
-The test suite covers **14 comprehensive underwriting and integration scenarios**:
+The test suite covers **17 comprehensive underwriting and integration scenarios**:
 
 ### 8.1 Running the Tests
 ```bash
-# Run all 14 tests
+# Run all 17 tests
 python -m unittest tests.test_decision_engine
 
 # Run with verbose output
@@ -471,14 +484,18 @@ python -m unittest -v tests.test_decision_engine
 | **Test 4** | `test_4_statement_arithmetic_matching` | Statement: Op (10k) + Cr (50k) − Dr (20k) = Cl (40k) | Passes reconciliation with `status = "MATCH"` |
 | **Test 5** | `test_5_statement_arithmetic_mismatch` | Statement closing balance tampered to ₹99,999 | Flags mismatch of ₹59,999 with `status = "MISMATCH"` |
 | **Test 6** | `test_6_eligibility_check_pass_and_fail` | Evaluates qualifying vs high-risk/failing applicant metrics | Pass for clean applicant; Fail with reasons for high-risk |
-| **Test 7** | `test_7_clean_applicant_routing_green` | Verified clean applicant with low debt and zero discrepancies | Routed to 🟢 **GREEN** (`auto_approve`), Score $\ge 85$ |
-| **Test 8** | `test_8_major_anomaly_routing_red` | Major income overstatement + undisclosed debt | Routed to 🔴 **RED** (`reject`), Score $< 50$ |
-| **Test 9** | `test_9_llm_fallback_resilience` | LLM offline / missing API key scenario | Seamlessly executes rule fallback without errors |
+| **Test 7** | `test_7_clean_applicant_routing_green` | Verified clean applicant with low debt and zero discrepancies | Routed to 🟢 **GREEN** (`recommend_approve`), Score $\ge 85$, `requires_human_signoff = True` |
+| **Test 8** | `test_8_major_anomaly_routing_red` | Major income overstatement + undisclosed debt | Routed to 🔴 **RED** (`recommend_reject`), Score $< 50$, counterfactual generated |
+| **Test 9** | `test_9_llm_fallback_resilience` | LLM offline / missing API key scenario | Seamlessly executes rule fallback and emits `suggested_actions` |
 | **Test 10**| `test_10_step4_identity_discrepancy_integration` | Step 4 identity mismatch integration | Discovers `IDENTITY_MISMATCH` with evidence from Step 4 |
 | **Test 11**| `test_11_dynamic_policy_deduction_weights` | Dynamic policy scoring weights modification | Confirms altering policy deduction weights alters score dynamically |
 | **Test 12**| `test_12_policy_loader_fallback_validity` | Safe policy fallback dictionary parsing | Validates fallback dict structure without Python syntax errors |
 | **Test 13**| `test_13_step4_declared_emi_extraction` | Declared EMI extraction from loan application | Accurately extracts and sums applicant declared liabilities |
 | **Test 14**| `test_14_unified_step4_step6_risk_consistency` | Step 4 and Step 6 risk engine unification | Ensures Step 4 document comparison rejection prevents auto-approval |
+| **Test 15**| `test_15_missing_document_handling` | Missing statement/payslip detection | Flags `MISSING_DOCUMENT` discrepancy without false math errors |
+| **Test 16**| `test_16_quantified_factor_breakdown_and_checklist` | Itemized deduction breakdown and underwriter checklist | Verifies mathematical point deduction auditability |
+| **Test 17**| `test_17_human_override_schema` | Human underwriter override event logging | Verifies override schema and regulatory feedback loop |
+
 
 ---
 
@@ -582,11 +599,18 @@ Whenever `run_decision_pipeline()` executes, it writes back complete underwritin
 > **Answer:** *"Applicants P002 through P017 form a diverse 10-applicant validation suite. Specifically, P003 and P004 serve as pristine clean control applicants (e.g. Abdul Basu, P004 has 0.01% variance and 29.3% FOIR) to prove 0% false-positive rejection rates on legitimate prime borrowers. Conversely, P006 (Logan Acharya) demonstrates severe overleverage (FOIR 99.49%), proving that our engine catches hidden debt strain even when document names and payslips match."*
 
 ### Q7: "How are Step 4 (Document Comparison) and Step 6 (Final Risk Decision) synchronized?"
-> **Answer:** *"Step 4's document-level comparison recommendations, identity flags, and audit notes are directly ingested into Step 6's discrepancy detection and risk rules. If Step 4 flags an identity mismatch or recommends REJECT, Step 6 guarantees the final decision can never be GREEN (Auto-Approve) and routes it to RED/AMBER with the exact audit reasoning preserved."*
+> **Answer:** *"Step 4's document-level comparison recommendations, identity flags, and audit notes are directly ingested into Step 6's discrepancy detection and risk rules. If Step 4 flags an identity mismatch or recommends REJECT, Step 6 guarantees the final decision can never be GREEN (recommend_approve) and routes it to RED/AMBER with the exact audit reasoning preserved."*
+
+### Q8: "Does your system ever bypass human judgment or auto-disburse loans?"
+> **Answer:** *"No. In our data model and architecture, the engine never makes unilateral credit decisions—it emits underwriter-facing recommendations (`recommend_approve`, `recommend_review`, `recommend_reject`) with an architecturally enforced `requires_human_signoff = True` across every evaluation. For GREEN cases, underwriters receive a 1-click expedited confirmation experience with pre-assembled KYC verification checklists and quantified point breakdowns (`factor_breakdown`), saving time while maintaining complete regulatory accountability."*
+
+### Q9: "What happens when an underwriter overrides the system's recommendation?"
+> **Answer:** *"We provide dedicated `log_human_override` audit logging in MongoDB storing the human decision, underwriter ID, override justification, and original system recommendation. This creates an immutable compliance audit trail and an active feedback loop for recalibrating policy thresholds over time."*
 
 ---
 
 <div align="center">
 <b>TRACE Underwriting Decision Engine</b> — Engineering reliable, auditable, and intelligent loan automation.
 </div>
+
 

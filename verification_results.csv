@@ -1,12 +1,13 @@
-Application Ref,Step 4 Comparison Finding,Verified Income,FOIR / DTI,Discrepancies,Risk Score,Routing Decision,Recommendation
-P002,Income Overstatement (49.4%),₹72,591.17,20.61%,2 Major,0.0 / 100,RED,reject
-P003,Clean / High Match (0.88% variance),₹61,011.00,20.60%,0,100.0 / 100,GREEN,auto_approve
-P004,Clean Control Applicant (0.01% variance),₹139,725.33,29.31%,0,100.0 / 100,GREEN,auto_approve
-P006,Severe Overleverage (FOIR 99.5%),₹74,290.00,99.49%,2 Major,0.0 / 100,RED,reject
-P007,Excessive FOIR (66.46%),₹37,092.17,66.46%,2 Major,0.0 / 100,RED,reject
-P008,High Debt Burden (FOIR 148%),₹59,089.67,148.65%,2 Major,0.0 / 100,RED,reject
-P009,Multiple Debt Obligations,₹45,681.67,83.59%,3 Major,0.0 / 100,RED,reject
-P011,High Income High Leverage (167%),₹200,363.00,167.61%,2 Major,0.0 / 100,RED,reject
-P013,Undisclosed Debt & FOIR (146%),₹37,380.83,146.83%,2 Major,0.0 / 100,RED,reject
-P017,Elevated Debt-to-Income (156%),₹155,147.50,156.05%,3 Major,0.0 / 100,RED,reject
+Application Ref,Step 4 Comparison Finding,Verified Income,FOIR / DTI,Discrepancies,Risk Score,Routing Decision,Recommendation,Requires Human Sign-off
+P002,Income Overstatement (49.4%),₹72,591.17,20.61%,2 Major,0.0 / 100,RED,recommend_reject,YES
+P003,Clean / High Match (0.88% variance),₹61,011.00,20.60%,0,100.0 / 100,GREEN,recommend_approve,YES
+P004,Clean Control Applicant (0.01% variance),₹139,725.33,29.31%,0,100.0 / 100,GREEN,recommend_approve,YES
+P006,Severe Overleverage (FOIR 99.5%),₹74,290.00,99.49%,2 Major,0.0 / 100,RED,recommend_reject,YES
+P007,Excessive FOIR (66.46%),₹37,092.17,66.46%,2 Major,0.0 / 100,RED,recommend_reject,YES
+P008,High Debt Burden (FOIR 148%),₹59,089.67,148.65%,2 Major,0.0 / 100,RED,recommend_reject,YES
+P009,Multiple Debt Obligations,₹45,681.67,83.59%,3 Major,0.0 / 100,RED,recommend_reject,YES
+P011,High Income High Leverage (167%),₹200,363.00,167.61%,2 Major,0.0 / 100,RED,recommend_reject,YES
+P013,Undisclosed Debt & FOIR (146%),₹37,380.83,146.83%,2 Major,0.0 / 100,RED,recommend_reject,YES
+P017,Elevated Debt-to-Income (156%),₹155,147.50,156.05%,3 Major,0.0 / 100,RED,recommend_reject,YES
+
 
