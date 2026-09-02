@@ -31,6 +31,29 @@ def detect_discrepancies(
     undisclosed_debt_gap = float(policy.get("liabilities", {}).get("max_allowed_undisclosed_emi_gap", 1000.0))
 
     discrepancies = []
+    docs = application_data.get("documents") or []
+    doc_types_present = {(d.get("doc_type") or "").upper() for d in docs}
+
+    # 0. Missing Mandatory Document Checks
+    if docs:
+        if not any("PAYSLIP" in dt for dt in doc_types_present):
+            discrepancies.append(
+                Discrepancy(
+                    discrepancy_type="MISSING_DOCUMENT",
+                    declared_value="Mandatory Submission",
+                    verified_value="PAYSLIP Missing",
+                    evidence_summary="Mandatory income verification document PAYSLIP is missing from application package.",
+                )
+            )
+        if not any("BANK_STATEMENT" in dt for dt in doc_types_present):
+            discrepancies.append(
+                Discrepancy(
+                    discrepancy_type="MISSING_DOCUMENT",
+                    declared_value="Mandatory Submission",
+                    verified_value="BANK_STATEMENT Missing",
+                    evidence_summary="Mandatory banking document BANK_STATEMENT is missing from application package.",
+                )
+            )
 
     # 1. Income Mismatch
     if income_metrics.income_variance_percent > income_var_threshold:
@@ -58,21 +81,33 @@ def detect_discrepancies(
             )
         )
 
-    # 3. Bank Statement Balance Arithmetic Mismatch
+    # 3. Bank Statement Balance Arithmetic Mismatch vs Missing Document
     if not statement_result.is_valid:
-        discrepancies.append(
-            Discrepancy(
-                discrepancy_type="STATEMENT_ARITHMETIC_MISMATCH",
-                declared_value=f"Stated: Rs. {statement_result.actual_closing_balance:,.2f}",
-                verified_value=f"Expected: Rs. {statement_result.expected_closing_balance:,.2f}",
-                difference_amount=statement_result.difference_amount,
-                evidence_summary=statement_result.message,
+        if statement_result.status == "MISSING":
+            if not any(d.discrepancy_type == "MISSING_DOCUMENT" and "BANK_STATEMENT" in (d.verified_value or "") for d in discrepancies):
+                discrepancies.append(
+                    Discrepancy(
+                        discrepancy_type="MISSING_DOCUMENT",
+                        declared_value="Mandatory Submission",
+                        verified_value="BANK_STATEMENT Missing",
+                        evidence_summary=statement_result.message,
+                    )
+                )
+        else:
+            discrepancies.append(
+                Discrepancy(
+                    discrepancy_type="STATEMENT_ARITHMETIC_MISMATCH",
+                    declared_value=f"Stated: Rs. {statement_result.actual_closing_balance:,.2f}",
+                    verified_value=f"Expected: Rs. {statement_result.expected_closing_balance:,.2f}",
+                    difference_amount=statement_result.difference_amount,
+                    evidence_summary=statement_result.message,
+                )
             )
-        )
 
     # 4. Employer Mismatch
     applicant = (application_data.get("applicants") or [{}])[0]
     dec_emp = (applicant.get("employer_name") or "").strip().lower()
+
     docs = application_data.get("documents") or []
     pay_emps = [d.get("extracted", {}).get("employer_name", "").strip().lower() for d in docs if "PAYSLIP" in d.get("doc_type", "").upper() and d.get("extracted", {}).get("employer_name")]
 

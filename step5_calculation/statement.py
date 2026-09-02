@@ -11,12 +11,23 @@ class StatementValidationResult(BaseModel):
 
 
 def validate_statement_arithmetic(
-    opening_balance: float,
-    total_credits: float,
-    total_debits: float,
-    closing_balance: float,
+    opening_balance: float = 0.0,
+    total_credits: float = 0.0,
+    total_debits: float = 0.0,
+    closing_balance: float = 0.0,
     max_error: float = 5.0,
+    is_provided: bool = True,
 ) -> StatementValidationResult:
+    if not is_provided:
+        return StatementValidationResult(
+            is_valid=False,
+            status="MISSING",
+            expected_closing_balance=0.0,
+            actual_closing_balance=0.0,
+            difference_amount=0.0,
+            message="Bank statement document not provided in application package.",
+        )
+
     # Opening + Credits - Debits == Closing Balance
     op = float(opening_balance or 0)
     cr = float(total_credits or 0)
@@ -35,3 +46,4 @@ def validate_statement_arithmetic(
         difference_amount=diff,
         message="Reconciled accurately" if is_valid else f"Arithmetic error: Expected Rs. {expected:,.2f} vs Actual Rs. {cl:,.2f} (diff: Rs. {diff:,.2f})",
     )
+

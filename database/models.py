@@ -93,6 +93,15 @@ class AuditLog(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class HumanOverride(BaseModel):
+    application_ref: str
+    human_decision: str  # e.g., "APPROVED", "REJECTED", "MODIFIED"
+    override_reason: str
+    overridden_by: str  # Underwriter User ID / Name
+    original_recommendation: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class PolicyEmbedding(BaseModel):
     policy_name: str
     loan_type: str = "personal_loan"
@@ -101,3 +110,4 @@ class PolicyEmbedding(BaseModel):
     embedding: Optional[list[float]] = None
     section_title: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+

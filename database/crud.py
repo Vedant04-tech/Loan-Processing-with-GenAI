@@ -30,6 +30,9 @@ def get_application_summary(db: Database, application_ref: str) -> dict | None:
         "risk_score": risk.get("score"),
         "risk_grade": risk.get("grade"),
         "recommendation": risk.get("recommendation"),
+        "requires_human_signoff": risk.get("requires_human_signoff", True),
+        "reviewer_checklist": risk.get("reviewer_checklist", []),
+        "counterfactual_note": risk.get("counterfactual_note"),
         "verified_monthly_income": financials.get("verified_monthly_income"),
         "total_existing_emis": financials.get("total_existing_emis"),
         "proposed_emi": financials.get("proposed_emi"),
@@ -39,10 +42,11 @@ def get_application_summary(db: Database, application_ref: str) -> dict | None:
         "full_name": primary.get("full_name"),
         "employer_name": primary.get("employer_name"),
         "pan_number": primary.get("pan_number"),
-        "income_consistency": factors.get("income_consistency"),
-        "employment_stability": factors.get("employment_stability"),
-        "credit_behaviour": factors.get("credit_behaviour"),
-        "emi_burden": factors.get("emi_burden"),
+        "factors": risk.get("factors") or {},
+        "income_consistency": factors.get("qualitative_indicators", {}).get("income_consistency") or factors.get("income_consistency"),
+        "employment_stability": factors.get("qualitative_indicators", {}).get("employment_stability") or factors.get("employment_stability"),
+        "credit_behaviour": factors.get("qualitative_indicators", {}).get("credit_behaviour") or factors.get("credit_behaviour"),
+        "emi_burden": factors.get("qualitative_indicators", {}).get("emi_burden") or factors.get("emi_burden"),
     }
 
 
@@ -82,12 +86,32 @@ def update_routing(db: Database, application_ref: str, color: str, reason: str):
     )
 
 
-def update_risk(db: Database, application_ref: str, score: float, grade: str, recommendation: str, factors: dict):
-    """Saves calculated risk score and factor ratings."""
+def update_risk(
+    db: Database,
+    application_ref: str,
+    score: float,
+    grade: str,
+    recommendation: str,
+    factors: dict,
+    requires_human_signoff: bool = True,
+    reviewer_checklist: list[str] = None,
+    counterfactual_note: str | None = None,
+):
+    """Saves calculated risk score, quantified factors, checklist, and counterfactual reasoning."""
+    risk_payload = {
+        "score": score,
+        "grade": grade,
+        "recommendation": recommendation,
+        "requires_human_signoff": requires_human_signoff,
+        "factors": factors,
+        "reviewer_checklist": reviewer_checklist or [],
+        "counterfactual_note": counterfactual_note,
+    }
     return db.applications.update_one(
         {"application_ref": application_ref},
-        {"$set": {"risk": {"score": score, "grade": grade, "recommendation": recommendation, "factors": factors}, "updated_at": datetime.utcnow()}}
+        {"$set": {"risk": risk_payload, "updated_at": datetime.utcnow()}}
     )
+
 
 
 def insert_extracted_fields(db: Database, fields: list[dict]):
@@ -194,7 +218,34 @@ def log_audit_event(db: Database, application_ref: str, actor: str, action: str,
     })
 
 
+def log_human_override(
+    db: Database,
+    application_ref: str,
+    human_decision: str,
+    override_reason: str,
+    overridden_by: str,
+    original_recommendation: str = "",
+):
+    """
+    Records an underwriter override for regulatory compliance auditability
+    and threshold recalibration feedback loops.
+    """
+    return db.audit_logs.insert_one({
+        "application_ref": application_ref,
+        "actor": overridden_by,
+        "action": "HUMAN_OVERRIDE",
+        "detail": {
+            "human_decision": human_decision,
+            "override_reason": override_reason,
+            "original_recommendation": original_recommendation,
+            "timestamp": datetime.utcnow().isoformat()
+        },
+        "created_at": datetime.utcnow(),
+    })
+
+
 def get_audit_trail(db: Database, application_ref: str) -> list[dict]:
+
     cursor = db.audit_logs.find({"application_ref": application_ref}).sort("created_at", 1)
     return [{k: v for k, v in doc.items() if k != "_id"} for doc in cursor]
 
