@@ -253,3 +253,14 @@ def run_pipeline(
         is_llm_fallback=is_fallback,
         underwriting_summary=anomaly_assessment.underwriting_summary,
     )
+
+
+# Backward-compatible alias
+run_decision_pipeline = run_pipeline
+
+__all__ = [
+    "run_pipeline",
+    "run_decision_pipeline",
+    "PipelineResult",
+]
+

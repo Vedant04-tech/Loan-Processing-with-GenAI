@@ -283,8 +283,9 @@ Located in `step4_Document comparison/`, this module cross-references extracted 
    - Normalizes net salary stated in loan application vs. payslip net salary.
    - Cross-references stated employer vs. employer extracted from payslip / Form 16.
 3. **Database Writeback:**
-   - Dynamically executed in `decision_engine.py` using `importlib.import_module("step4_Document comparison.app.pipeline")`.
+   - Dynamically executed in `pipeline.py` using `importlib.import_module("step4_Document comparison.app.pipeline")`.
    - Results are persisted to `comparison_results` collection and embedded inside `applications.step4_comparison`.
+
 4. **Step 6 Anomaly Integration:**
    - If Step 4 yields an `identity_status` of `MISMATCH` or `PARTIAL_MATCH`, Step 6 automatically generates an `IDENTITY_MISMATCH` discrepancy item with full field-level evidence.
 
@@ -404,16 +405,16 @@ Seeds realistic demo applications with payslips, PAN cards, bank statements, and
 python import_data.py
 ```
 
-### Mode 3: Run by Application Reference (CLI)
-Runs the entire decision pipeline for an applicant stored in MongoDB:
+### Mode 3: Run Single Applicant via CLI
+Runs the entire decision pipeline for an applicant stored in MongoDB or local benchmark data:
 ```bash
-python decision_engine.py P002
+python main.py P003
 ```
 
-### Mode 4: Run by Ingesting Step 4 Comparison JSON Directly
-Directly processes a Step 4 document comparison JSON file:
+### Mode 4: Run Full 10-Applicant Benchmark Suite
+Batch processes all 10 real benchmark applicants and displays the evaluation ledger:
 ```bash
-python decision_engine.py "comparison_result_P003.json"
+python main.py --all
 ```
 
 ### Mode 5: Programmatic Integration (Python API)
@@ -421,7 +422,8 @@ Integrate the decision pipeline inside any FastAPI, Flask, or backend service:
 
 ```python
 from database.db_config import get_db
-from decision_engine import run_decision_pipeline
+from pipeline import run_pipeline
+
 
 # 1. Connect to database
 db = get_db()

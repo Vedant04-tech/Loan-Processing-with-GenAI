@@ -175,26 +175,25 @@ My Part/
 ├── 📂 step4_Document comparison/   # STEP 4: Document Cross-Comparison Engine
 │   ├── app/                        # Normalizers, Extractors, Semantic LLM & Policy Engine
 │   ├── extracted_data/             # Real applicant benchmark document datasets (P002-P017)
-│   └── main.py                     # Batch Step 4 comparison runner
+│   ├── output/                     # Step 4 comparison JSON outputs
+│   └── main.py                     # Standalone Step 4 batch runner
 │
 ├── 📂 step5_calculation/           # STEP 5: Deterministic Calculation Engine
-│   ├── income.py                   # Verified payslip averaging & bank salary resolution
-│   ├── obligations.py              # Declared vs bank EMIs, FOIR, undisclosed debt hunter
-│   ├── statement.py                # Bank statement balance arithmetic reconciliation
-│   └── eligibility.py              # Policy threshold evaluations (Pass / Fail)
+│   ├── app/                        # Income, Obligations, Statement & Eligibility logic
+│   ├── output/                     # Step 5 calculation JSON outputs
+│   └── main.py                     # Standalone Step 5 batch runner
 │
 ├── 📂 step6_risk_anomaly/          # STEP 6: Risk & Anomaly Engine
-│   ├── schemas.py                  # Pydantic models for structured anomaly assessment
-│   ├── discrepancy.py              # Deterministic discrepancy discovery (incl. Step 4 ID checks)
-│   ├── anomaly_classifier.py       # LangChain ChatGroq classifier with safe fallback
-│   └── risk_rules.py               # 100-point risk deduction scoring & 3-tier routing
+│   ├── app/                        # Schemas, Discrepancies, LLM Classifier & Risk Rules
+│   ├── output/                     # Step 6 risk JSON outputs
+│   └── main.py                     # Standalone Step 6 batch runner
 │
 ├── 📂 tests/                       # Automated Test Suite
 │   ├── test_db.py                  # MongoDB Atlas connectivity validation
-│   └── test_decision_engine.py     # 10-scenario unit & integration test suite
+│   └── test_decision_engine.py     # 17-scenario comprehensive unit test suite
 │
-├── decision_engine.py              # 🚀 Main Orchestrator: run_decision_pipeline()
-├── run_pipeline_test.py            # 🧪 End-to-End Integration Test Runner
+├── main.py                         # 🚀 Primary CLI Entry Point: python main.py P003 / --all
+├── pipeline.py                     # ⚙️ Unified Pipeline Orchestrator: run_pipeline()
 ├── import_data.py                  # Demonstration data seeder & JSON importer
 ├── verification_results.csv        # Real-world benchmark evaluation results
 ├── requirements.txt                # Python dependencies
@@ -215,7 +214,6 @@ cd "My Part"
 pip install -r requirements.txt
 ```
 
-
 ### 2. Configure Environment Variables
 Create a `.env` file in the root directory (see `.env.example`):
 ```env
@@ -225,25 +223,20 @@ GROQ_API_KEY=gsk_...
 GEMINI_API_KEY=AQ...
 ```
 
-### 3. Run Integration Pipeline Test Runner
+### 3. Run Pipeline via CLI
 ```bash
-# Runs Step 4, Step 5, Step 6, and verifies MongoDB writeback
-python run_pipeline_test.py
+# Option A: Run single applicant (e.g. P003)
+python main.py P003
+
+# Option B: Run full 10-applicant benchmark suite
+python main.py --all
 ```
 
-### 4. Run Pipeline via CLI
-```bash
-# Option A: Run for an applicant already in MongoDB
-python decision_engine.py P002
-
-# Option B: Ingest a Step 4 comparison JSON file directly
-python decision_engine.py "comparison_result_P003.json"
-```
-
-### 5. Run Complete Unit Test Suite
+### 4. Run Complete Unit Test Suite (17 Tests)
 ```bash
 python -m unittest tests.test_decision_engine
 ```
+
 
 ---
 
