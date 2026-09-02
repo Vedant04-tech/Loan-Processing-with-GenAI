@@ -12,3 +12,5 @@ class ClassifiedAnomaly(BaseModel):
 class AnomalyAssessment(BaseModel):
     anomalies: list[ClassifiedAnomaly] = Field(description="List of classified anomalies")
     underwriting_summary: str = Field(description="High-level underwriting synthesis")
+    suggested_actions: list[str] = Field(default_factory=list, description="Concrete verification steps for reviewer")
+
