@@ -8,7 +8,7 @@
   "verified_monthly_net": 74290.0,
   "income_difference": 0.0,
   "income_difference_percent": 0.0,
-  "declared_emi": 0.0,
+  "declared_emi": 10800.0,
   "detected_emi": 64800.0,
   "dti_percent": 87.23,
   "discrepancies": [
@@ -162,5 +162,5 @@
   ],
   "risk_level": "MEDIUM",
   "recommendation": "REVIEW",
-  "audit_notes": "DTI exceeds standard policy threshold."
+  "audit_notes": "DTI exceeds standard policy threshold of 50.0%."
 }

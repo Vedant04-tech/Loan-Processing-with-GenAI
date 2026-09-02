@@ -8,7 +8,7 @@
   "verified_monthly_net": 200363.0,
   "income_difference": 0.0,
   "income_difference_percent": 0.0,
-  "declared_emi": 0.0,
+  "declared_emi": 52360.0,
   "detected_emi": 314160.0,
   "dti_percent": 156.8,
   "discrepancies": [
@@ -139,7 +139,7 @@
     {
       "field": "Employer",
       "status": "MATCH",
-      "reason": "Both records list the same employer name with no differences.",
+      "reason": "Both records list the same employer name, accounting for common abbreviations.",
       "confidence": 100.0
     },
     {
@@ -162,5 +162,5 @@
   ],
   "risk_level": "MEDIUM",
   "recommendation": "REVIEW",
-  "audit_notes": "DTI exceeds standard policy threshold."
+  "audit_notes": "DTI exceeds standard policy threshold of 50.0%."
 }

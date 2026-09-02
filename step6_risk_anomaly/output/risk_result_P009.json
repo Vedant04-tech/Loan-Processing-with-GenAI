@@ -1,0 +1,94 @@
+{
+  "applicant_id": "P009",
+  "discrepancies": [
+    {
+      "discrepancy_type": "UNDISCLOSED_LIABILITY",
+      "declared_value": "Rs. 5,660.00",
+      "verified_value": "Rs. 33,960.00",
+      "difference_amount": 28300.0,
+      "difference_percent": 500.0,
+      "evidence_summary": "Active recurring bank EMI debits of Rs. 33,960.00 exceed declared debt by Rs. 28,300.00"
+    },
+    {
+      "discrepancy_type": "STATEMENT_ARITHMETIC_MISMATCH",
+      "declared_value": "Stated: Rs. 64,993.72",
+      "verified_value": "Expected: Rs. 66,975.72",
+      "difference_amount": 1982.0,
+      "difference_percent": null,
+      "evidence_summary": "Arithmetic error: Expected Rs. 66,975.72 vs Actual Rs. 64,993.72 (diff: Rs. 1,982.00)"
+    },
+    {
+      "discrepancy_type": "ELIGIBILITY_FAILURE",
+      "declared_value": "Policy Criteria",
+      "verified_value": "Failed",
+      "difference_amount": null,
+      "difference_percent": null,
+      "evidence_summary": "FOIR 83.59% exceeds policy threshold of 50.0%; Undisclosed debt of Rs. 28,300.00 exceeds tolerance"
+    }
+  ],
+  "anomaly_assessment": {
+    "anomalies": [
+      {
+        "discrepancy_type": "UNDISCLOSED_LIABILITY",
+        "severity": "Major",
+        "reasoning": "The applicant’s verified liability (Rs. 33,960) is six times the declared amount (Rs. 5,660), indicating a substantial hidden debt that materially affects debt‑to‑income ratio and loan eligibility. This is a significant underwriting risk.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "STATEMENT_ARITHMETIC_MISMATCH",
+        "severity": "Moderate",
+        "reasoning": "A discrepancy of Rs. 1,982 in the statement balance is a non‑negligible error that could misrepresent the applicant’s financial position. While not as severe as an undisclosed liability, it still warrants attention.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "ELIGIBILITY_FAILURE",
+        "severity": "Major",
+        "reasoning": "The applicant fails the policy criteria due to high FOIR and undisclosed debt. This directly violates underwriting rules and disqualifies the application.",
+        "evidence_ids": []
+      }
+    ],
+    "underwriting_summary": "Automated underwriting assessment completed.",
+    "suggested_actions": [
+      "Verify the source of the Rs. 33,960 EMI debits by requesting a copy of the loan agreement or credit card statement from the applicant.",
+      "Request a detailed breakdown of the applicant’s monthly expenses to reconcile the Rs. 1,982 arithmetic discrepancy.",
+      "Obtain a written confirmation from the applicant’s employer regarding current salary and employment status to ensure income verification is accurate.",
+      "Schedule a call with the applicant to discuss the undisclosed liability and assess willingness to disclose and repay the debt."
+    ]
+  },
+  "risk_result": {
+    "score": 0.0,
+    "grade": "High",
+    "routing_color": "red",
+    "recommendation": "recommend_reject",
+    "routing_reason": "Flagged for adverse action: 2 major anomaly(ies), statement arithmetic failure, policy eligibility failure, low score 0.0.",
+    "requires_human_signoff": true,
+    "factor_breakdown": {
+      "base_score": 100.0,
+      "major_anomalies_deduction": -90.0,
+      "moderate_anomalies_deduction": -25.0,
+      "minor_anomalies_deduction": -0.0,
+      "statement_arithmetic_deduction": -30.0,
+      "eligibility_failure_deduction": -50.0,
+      "final_calculated_score": 0.0,
+      "itemized_anomalies_count": {
+        "major": 2,
+        "moderate": 1,
+        "minor": 0
+      },
+      "qualitative_indicators": {
+        "income_consistency": "Verified",
+        "employment_stability": "Verified",
+        "credit_behaviour": "Mismatch Detected",
+        "emi_burden": "High"
+      }
+    },
+    "reviewer_checklist": [
+      "Verify the source of the Rs. 33,960 EMI debits by requesting a copy of the loan agreement or credit card statement from the applicant.",
+      "Request a detailed breakdown of the applicant’s monthly expenses to reconcile the Rs. 1,982 arithmetic discrepancy.",
+      "Obtain a written confirmation from the applicant’s employer regarding current salary and employment status to ensure income verification is accurate.",
+      "Schedule a call with the applicant to discuss the undisclosed liability and assess willingness to disclose and repay the debt."
+    ],
+    "counterfactual_note": "Would move to GREEN/AMBER if: FOIR were reduced to ≤ 50.0% (currently 83.59%); undisclosed debt of Rs. 28,300.00 is cleared or documented; verified bank statement closing arithmetic is reconciled."
+  },
+  "is_llm_fallback": false
+}

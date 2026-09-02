@@ -165,5 +165,5 @@
   ],
   "risk_level": "HIGH",
   "recommendation": "REJECT",
-  "audit_notes": "Identity mismatch detected. Potential undisclosed liability. DTI exceeds standard policy threshold."
+  "audit_notes": "Identity mismatch detected. Potential undisclosed liability. DTI exceeds standard policy threshold of 50.0%."
 }

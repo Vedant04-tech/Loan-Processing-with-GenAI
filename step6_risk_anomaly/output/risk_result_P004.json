@@ -1,0 +1,46 @@
+{
+  "applicant_id": "P004",
+  "discrepancies": [],
+  "anomaly_assessment": {
+    "anomalies": [],
+    "underwriting_summary": "All document checks and calculations verified without discrepancies.",
+    "suggested_actions": [
+      "Confirm applicant identity match across KYC proofs",
+      "Verify one-click fast-track sign-off for loan disbursement"
+    ]
+  },
+  "risk_result": {
+    "score": 100.0,
+    "grade": "Low",
+    "routing_color": "green",
+    "recommendation": "recommend_approve",
+    "routing_reason": "Fast-track: all checks passed, no discrepancies. Recommended for expedited approver sign-off.",
+    "requires_human_signoff": true,
+    "factor_breakdown": {
+      "base_score": 100.0,
+      "major_anomalies_deduction": -0.0,
+      "moderate_anomalies_deduction": -0.0,
+      "minor_anomalies_deduction": -0.0,
+      "statement_arithmetic_deduction": -0.0,
+      "eligibility_failure_deduction": -0.0,
+      "final_calculated_score": 100.0,
+      "itemized_anomalies_count": {
+        "major": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "qualitative_indicators": {
+        "income_consistency": "Verified",
+        "employment_stability": "Verified",
+        "credit_behaviour": "Good",
+        "emi_burden": "Low"
+      }
+    },
+    "reviewer_checklist": [
+      "Confirm applicant identity match across KYC proofs",
+      "Verify one-click fast-track sign-off for loan disbursement"
+    ],
+    "counterfactual_note": "Meets all automated underwriting guidelines for fast-track approval."
+  },
+  "is_llm_fallback": false
+}

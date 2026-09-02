@@ -1,0 +1,80 @@
+{
+  "applicant_id": "P011",
+  "discrepancies": [
+    {
+      "discrepancy_type": "UNDISCLOSED_LIABILITY",
+      "declared_value": "Rs. 52,360.00",
+      "verified_value": "Rs. 314,160.00",
+      "difference_amount": 261800.0,
+      "difference_percent": 500.0,
+      "evidence_summary": "Active recurring bank EMI debits of Rs. 314,160.00 exceed declared debt by Rs. 261,800.00"
+    },
+    {
+      "discrepancy_type": "ELIGIBILITY_FAILURE",
+      "declared_value": "Policy Criteria",
+      "verified_value": "Failed",
+      "difference_amount": null,
+      "difference_percent": null,
+      "evidence_summary": "FOIR 167.61% exceeds policy threshold of 50.0%; Undisclosed debt of Rs. 261,800.00 exceeds tolerance"
+    }
+  ],
+  "anomaly_assessment": {
+    "anomalies": [
+      {
+        "discrepancy_type": "UNDISCLOSED_LIABILITY",
+        "severity": "Major",
+        "reasoning": "The applicant’s verified debt of Rs. 314,160.00 is 500% higher than the declared Rs. 52,360.00, indicating a substantial hidden liability that directly impacts debt‑to‑income ratio and loan affordability. Such a large discrepancy is a significant underwriting risk.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "ELIGIBILITY_FAILURE",
+        "severity": "Major",
+        "reasoning": "FOIR of 167.61% far exceeds the policy threshold of 50.0%. Combined with the undisclosed liability, the applicant fails the eligibility criteria, making the loan ineligible under current underwriting rules.",
+        "evidence_ids": []
+      }
+    ],
+    "underwriting_summary": "Automated underwriting assessment completed.",
+    "suggested_actions": [
+      "Verify the source of the Rs. 314,160.00 recurring EMI debits by requesting the bank statement lines and the loan agreement details.",
+      "Contact the applicant to confirm the existence and terms of the undisclosed liability and obtain a written acknowledgment.",
+      "Re‑calculate the applicant’s FOIR after adjusting for the verified debt and confirm whether it still exceeds the policy limit.",
+      "If the applicant cannot provide satisfactory evidence, recommend denial or request a higher down‑payment to mitigate risk."
+    ]
+  },
+  "risk_result": {
+    "score": 0.0,
+    "grade": "High",
+    "routing_color": "red",
+    "recommendation": "recommend_reject",
+    "routing_reason": "Flagged for adverse action: 2 major anomaly(ies), policy eligibility failure, low score 0.0.",
+    "requires_human_signoff": true,
+    "factor_breakdown": {
+      "base_score": 100.0,
+      "major_anomalies_deduction": -90.0,
+      "moderate_anomalies_deduction": -0.0,
+      "minor_anomalies_deduction": -0.0,
+      "statement_arithmetic_deduction": -0.0,
+      "eligibility_failure_deduction": -50.0,
+      "final_calculated_score": 0.0,
+      "itemized_anomalies_count": {
+        "major": 2,
+        "moderate": 0,
+        "minor": 0
+      },
+      "qualitative_indicators": {
+        "income_consistency": "Verified",
+        "employment_stability": "Verified",
+        "credit_behaviour": "Good",
+        "emi_burden": "High"
+      }
+    },
+    "reviewer_checklist": [
+      "Verify the source of the Rs. 314,160.00 recurring EMI debits by requesting the bank statement lines and the loan agreement details.",
+      "Contact the applicant to confirm the existence and terms of the undisclosed liability and obtain a written acknowledgment.",
+      "Re‑calculate the applicant’s FOIR after adjusting for the verified debt and confirm whether it still exceeds the policy limit.",
+      "If the applicant cannot provide satisfactory evidence, recommend denial or request a higher down‑payment to mitigate risk."
+    ],
+    "counterfactual_note": "Would move to GREEN/AMBER if: FOIR were reduced to ≤ 50.0% (currently 167.61%); undisclosed debt of Rs. 261,800.00 is cleared or documented."
+  },
+  "is_llm_fallback": false
+}

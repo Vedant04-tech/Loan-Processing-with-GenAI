@@ -1,0 +1,94 @@
+{
+  "applicant_id": "P017",
+  "discrepancies": [
+    {
+      "discrepancy_type": "INCOME_MISMATCH",
+      "declared_value": "Rs. 282,480.00",
+      "verified_value": "Rs. 155,147.50",
+      "difference_amount": 127332.5,
+      "difference_percent": 82.07,
+      "evidence_summary": "Declared net income Rs. 282,480.00 differs from verified Rs. 155,147.50 by 82.07%"
+    },
+    {
+      "discrepancy_type": "UNDISCLOSED_LIABILITY",
+      "declared_value": "Rs. 33,460.00",
+      "verified_value": "Rs. 200,760.00",
+      "difference_amount": 167300.0,
+      "difference_percent": 500.0,
+      "evidence_summary": "Active recurring bank EMI debits of Rs. 200,760.00 exceed declared debt by Rs. 167,300.00"
+    },
+    {
+      "discrepancy_type": "ELIGIBILITY_FAILURE",
+      "declared_value": "Policy Criteria",
+      "verified_value": "Failed",
+      "difference_amount": null,
+      "difference_percent": null,
+      "evidence_summary": "FOIR 156.05% exceeds policy threshold of 50.0%; Income overstatement (82.07%) exceeds 20.0% limit; Undisclosed debt of Rs. 167,300.00 exceeds tolerance"
+    }
+  ],
+  "anomaly_assessment": {
+    "anomalies": [
+      {
+        "discrepancy_type": "INCOME_MISMATCH",
+        "severity": "Major",
+        "reasoning": "The declared income is 82% higher than the verified amount, which is well above the typical 20% tolerance for income overstatement. This large overstatement indicates a significant risk of misrepresentation and could lead to loan default if the borrower cannot meet repayment obligations.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "UNDISCLOSED_LIABILITY",
+        "severity": "Major",
+        "reasoning": "The borrower has an undisclosed recurring debt of Rs. 200,760.00, which is 500% higher than the declared liability. This represents a substantial hidden financial obligation that directly impacts the borrower's debt-to-income ratio and increases default risk.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "ELIGIBILITY_FAILURE",
+        "severity": "Major",
+        "reasoning": "The applicant fails multiple eligibility criteria: FOIR exceeds policy threshold, income overstatement exceeds tolerance, and undisclosed debt is beyond acceptable limits. The cumulative effect of these failures indicates a high likelihood of non-compliance with underwriting guidelines.",
+        "evidence_ids": []
+      }
+    ],
+    "underwriting_summary": "Automated underwriting assessment completed.",
+    "suggested_actions": [
+      "Verify declared income by requesting the latest salary slip or employer confirmation letter.",
+      "Obtain a detailed statement of all liabilities from the applicant, including loan agreements and credit card statements.",
+      "Request the applicant to provide the original loan agreement or NOC for the recurring EMI of Rs. 200,760.00.",
+      "Recalculate the debt-to-income ratio after confirming all liabilities and income to determine if the applicant meets the policy thresholds."
+    ]
+  },
+  "risk_result": {
+    "score": 0.0,
+    "grade": "High",
+    "routing_color": "red",
+    "recommendation": "recommend_reject",
+    "routing_reason": "Flagged for adverse action: 3 major anomaly(ies), policy eligibility failure, low score 0.0.",
+    "requires_human_signoff": true,
+    "factor_breakdown": {
+      "base_score": 100.0,
+      "major_anomalies_deduction": -135.0,
+      "moderate_anomalies_deduction": -0.0,
+      "minor_anomalies_deduction": -0.0,
+      "statement_arithmetic_deduction": -0.0,
+      "eligibility_failure_deduction": -50.0,
+      "final_calculated_score": 0.0,
+      "itemized_anomalies_count": {
+        "major": 3,
+        "moderate": 0,
+        "minor": 0
+      },
+      "qualitative_indicators": {
+        "income_consistency": "Variance Detected",
+        "employment_stability": "Verified",
+        "credit_behaviour": "Good",
+        "emi_burden": "High"
+      }
+    },
+    "reviewer_checklist": [
+      "Verify declared income by requesting the latest salary slip or employer confirmation letter.",
+      "Obtain a detailed statement of all liabilities from the applicant, including loan agreements and credit card statements.",
+      "Request the applicant to provide the original loan agreement or NOC for the recurring EMI of Rs. 200,760.00.",
+      "Recalculate the debt-to-income ratio after confirming all liabilities and income to determine if the applicant meets the policy thresholds."
+    ],
+    "counterfactual_note": "Would move to GREEN/AMBER if: FOIR were reduced to ≤ 50.0% (currently 156.05%); undisclosed debt of Rs. 167,300.00 is cleared or documented; income variance is reduced to ≤ 5.0% (currently 82.07%)."
+  },
+  "is_llm_fallback": false
+}

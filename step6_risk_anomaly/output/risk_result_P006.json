@@ -1,0 +1,80 @@
+{
+  "applicant_id": "P006",
+  "discrepancies": [
+    {
+      "discrepancy_type": "UNDISCLOSED_LIABILITY",
+      "declared_value": "Rs. 10,800.00",
+      "verified_value": "Rs. 64,800.00",
+      "difference_amount": 54000.0,
+      "difference_percent": 500.0,
+      "evidence_summary": "Active recurring bank EMI debits of Rs. 64,800.00 exceed declared debt by Rs. 54,000.00"
+    },
+    {
+      "discrepancy_type": "ELIGIBILITY_FAILURE",
+      "declared_value": "Policy Criteria",
+      "verified_value": "Failed",
+      "difference_amount": null,
+      "difference_percent": null,
+      "evidence_summary": "FOIR 99.49% exceeds policy threshold of 50.0%; Undisclosed debt of Rs. 54,000.00 exceeds tolerance"
+    }
+  ],
+  "anomaly_assessment": {
+    "anomalies": [
+      {
+        "discrepancy_type": "UNDISCLOSED_LIABILITY",
+        "severity": "Major",
+        "reasoning": "The applicant’s undisclosed liability exceeds declared debt by Rs. 54,000, which is 500% higher than the declared amount. This represents a significant hidden debt that materially impacts the debt‑to‑income ratio and violates the policy’s debt tolerance limits. Such a large discrepancy is a clear violation of underwriting guidelines and poses a high risk of default.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "ELIGIBILITY_FAILURE",
+        "severity": "Major",
+        "reasoning": "The applicant’s FOIR of 99.49% far exceeds the policy threshold of 50.0%. Coupled with the undisclosed liability, the applicant fails to meet the eligibility criteria. This failure indicates that the applicant is not suitable for the product under current underwriting rules, representing a major risk.",
+        "evidence_ids": []
+      }
+    ],
+    "underwriting_summary": "Automated underwriting assessment completed.",
+    "suggested_actions": [
+      "Contact the applicant’s employer HR or payroll department to confirm employment status and verify the declared income of Rs. 74,290.00.",
+      "Request the applicant to provide the last 3 months of bank statements and a copy of the loan agreement or NOC for the undisclosed liability of Rs. 64,800.00 to verify the debt details.",
+      "Obtain a written confirmation from the lender or creditor that the loan amount of Rs. 64,800.00 is current and the repayment schedule is as stated.",
+      "Re‑calculate the applicant’s debt‑to‑income ratio after verifying the undisclosed liability and confirm whether the FOIR still exceeds the policy threshold."
+    ]
+  },
+  "risk_result": {
+    "score": 0.0,
+    "grade": "High",
+    "routing_color": "red",
+    "recommendation": "recommend_reject",
+    "routing_reason": "Flagged for adverse action: 2 major anomaly(ies), policy eligibility failure, low score 0.0.",
+    "requires_human_signoff": true,
+    "factor_breakdown": {
+      "base_score": 100.0,
+      "major_anomalies_deduction": -90.0,
+      "moderate_anomalies_deduction": -0.0,
+      "minor_anomalies_deduction": -0.0,
+      "statement_arithmetic_deduction": -0.0,
+      "eligibility_failure_deduction": -50.0,
+      "final_calculated_score": 0.0,
+      "itemized_anomalies_count": {
+        "major": 2,
+        "moderate": 0,
+        "minor": 0
+      },
+      "qualitative_indicators": {
+        "income_consistency": "Verified",
+        "employment_stability": "Verified",
+        "credit_behaviour": "Good",
+        "emi_burden": "High"
+      }
+    },
+    "reviewer_checklist": [
+      "Contact the applicant’s employer HR or payroll department to confirm employment status and verify the declared income of Rs. 74,290.00.",
+      "Request the applicant to provide the last 3 months of bank statements and a copy of the loan agreement or NOC for the undisclosed liability of Rs. 64,800.00 to verify the debt details.",
+      "Obtain a written confirmation from the lender or creditor that the loan amount of Rs. 64,800.00 is current and the repayment schedule is as stated.",
+      "Re‑calculate the applicant’s debt‑to‑income ratio after verifying the undisclosed liability and confirm whether the FOIR still exceeds the policy threshold."
+    ],
+    "counterfactual_note": "Would move to GREEN/AMBER if: FOIR were reduced to ≤ 50.0% (currently 99.49%); undisclosed debt of Rs. 54,000.00 is cleared or documented."
+  },
+  "is_llm_fallback": false
+}

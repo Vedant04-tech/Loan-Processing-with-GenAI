@@ -1,0 +1,80 @@
+{
+  "applicant_id": "P007",
+  "discrepancies": [
+    {
+      "discrepancy_type": "UNDISCLOSED_LIABILITY",
+      "declared_value": "Rs. 3,200.00",
+      "verified_value": "Rs. 19,200.00",
+      "difference_amount": 16000.0,
+      "difference_percent": 500.0,
+      "evidence_summary": "Active recurring bank EMI debits of Rs. 19,200.00 exceed declared debt by Rs. 16,000.00"
+    },
+    {
+      "discrepancy_type": "ELIGIBILITY_FAILURE",
+      "declared_value": "Policy Criteria",
+      "verified_value": "Failed",
+      "difference_amount": null,
+      "difference_percent": null,
+      "evidence_summary": "FOIR 66.46% exceeds policy threshold of 50.0%; Undisclosed debt of Rs. 16,000.00 exceeds tolerance"
+    }
+  ],
+  "anomaly_assessment": {
+    "anomalies": [
+      {
+        "discrepancy_type": "UNDISCLOSED_LIABILITY",
+        "severity": "Major",
+        "reasoning": "The applicant’s declared liability is Rs. 3,200 while the verified liability is Rs. 19,200, a difference of Rs. 16,000 which is 500% higher than the declared amount. This represents a substantial hidden debt that significantly impacts the debt‑to‑income ratio and is well beyond typical tolerance limits. Such a large discrepancy is a major underwriting concern.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "ELIGIBILITY_FAILURE",
+        "severity": "Major",
+        "reasoning": "The applicant’s FOIR of 66.46% exceeds the policy threshold of 50.0%. Coupled with the undisclosed liability of Rs. 16,000, the applicant fails to meet the eligibility criteria. This failure directly violates policy rules and constitutes a major underwriting issue.",
+        "evidence_ids": []
+      }
+    ],
+    "underwriting_summary": "Automated underwriting assessment completed.",
+    "suggested_actions": [
+      "Obtain a written confirmation from the applicant’s employer confirming the stated monthly income of Rs. 37,092.17.",
+      "Request the applicant’s last 3 months of bank statements to verify the recurring EMI debits and confirm the total debt amount.",
+      "Ask the applicant to provide a loan NOC or official statement from the lender confirming the outstanding EMI of Rs. 19,200.",
+      "Verify the applicant’s FOIR calculation and confirm that the 66.46% figure is accurate; if incorrect, recalculate to assess eligibility."
+    ]
+  },
+  "risk_result": {
+    "score": 0.0,
+    "grade": "High",
+    "routing_color": "red",
+    "recommendation": "recommend_reject",
+    "routing_reason": "Flagged for adverse action: 2 major anomaly(ies), policy eligibility failure, low score 0.0.",
+    "requires_human_signoff": true,
+    "factor_breakdown": {
+      "base_score": 100.0,
+      "major_anomalies_deduction": -90.0,
+      "moderate_anomalies_deduction": -0.0,
+      "minor_anomalies_deduction": -0.0,
+      "statement_arithmetic_deduction": -0.0,
+      "eligibility_failure_deduction": -50.0,
+      "final_calculated_score": 0.0,
+      "itemized_anomalies_count": {
+        "major": 2,
+        "moderate": 0,
+        "minor": 0
+      },
+      "qualitative_indicators": {
+        "income_consistency": "Verified",
+        "employment_stability": "Verified",
+        "credit_behaviour": "Good",
+        "emi_burden": "High"
+      }
+    },
+    "reviewer_checklist": [
+      "Obtain a written confirmation from the applicant’s employer confirming the stated monthly income of Rs. 37,092.17.",
+      "Request the applicant’s last 3 months of bank statements to verify the recurring EMI debits and confirm the total debt amount.",
+      "Ask the applicant to provide a loan NOC or official statement from the lender confirming the outstanding EMI of Rs. 19,200.",
+      "Verify the applicant’s FOIR calculation and confirm that the 66.46% figure is accurate; if incorrect, recalculate to assess eligibility."
+    ],
+    "counterfactual_note": "Would move to GREEN/AMBER if: FOIR were reduced to ≤ 50.0% (currently 66.46%); undisclosed debt of Rs. 16,000.00 is cleared or documented."
+  },
+  "is_llm_fallback": false
+}

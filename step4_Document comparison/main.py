@@ -1,12 +1,22 @@
 import json
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent
+ROOT_DIR = BASE_DIR.parent
+
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from app.pipeline import build_pipeline_result
 
 load_dotenv()
 
-INPUT_DIR = Path("extracted_data")
-OUTPUT_DIR = Path("output")
+INPUT_DIR = BASE_DIR / "extracted_data"
+OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -19,7 +29,16 @@ def load_clean_json(file_path: Path) -> dict:
 
 
 def main():
-    input_files = sorted(INPUT_DIR.glob("P*.json"))
+    target_arg = sys.argv[1] if len(sys.argv) > 1 else None
+
+    if target_arg and target_arg != "--all":
+        if target_arg.endswith(".json"):
+            input_files = [Path(target_arg)]
+        else:
+            input_files = [INPUT_DIR / f"{target_arg}.json"]
+    else:
+        input_files = sorted(INPUT_DIR.glob("P*.json"))
+
     if not input_files:
         print(f"No JSON input files found in '{INPUT_DIR}'")
         return

@@ -1,0 +1,80 @@
+{
+  "applicant_id": "P008",
+  "discrepancies": [
+    {
+      "discrepancy_type": "UNDISCLOSED_LIABILITY",
+      "declared_value": "Rs. 12,060.00",
+      "verified_value": "Rs. 72,360.00",
+      "difference_amount": 60300.0,
+      "difference_percent": 500.0,
+      "evidence_summary": "Active recurring bank EMI debits of Rs. 72,360.00 exceed declared debt by Rs. 60,300.00"
+    },
+    {
+      "discrepancy_type": "ELIGIBILITY_FAILURE",
+      "declared_value": "Policy Criteria",
+      "verified_value": "Failed",
+      "difference_amount": null,
+      "difference_percent": null,
+      "evidence_summary": "FOIR 148.65% exceeds policy threshold of 50.0%; Undisclosed debt of Rs. 60,300.00 exceeds tolerance"
+    }
+  ],
+  "anomaly_assessment": {
+    "anomalies": [
+      {
+        "discrepancy_type": "UNDISCLOSED_LIABILITY",
+        "severity": "Major",
+        "reasoning": "The applicant’s undisclosed liability exceeds the declared amount by Rs. 60,300, which is a 500% overstatement. Such a large discrepancy indicates a significant risk of misrepresentation and a potential violation of the lender’s debt‑to‑income limits. This level of mismatch is beyond normal data entry errors and warrants a major classification.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "ELIGIBILITY_FAILURE",
+        "severity": "Major",
+        "reasoning": "The applicant’s FOIR of 148.65% far exceeds the policy threshold of 50%. Coupled with the undisclosed debt, this demonstrates a clear failure to meet eligibility criteria. The risk is high and the discrepancy is critical, thus it is classified as major.",
+        "evidence_ids": []
+      }
+    ],
+    "underwriting_summary": "Automated underwriting assessment completed.",
+    "suggested_actions": [
+      "Contact the applicant’s employer HR or payroll department to confirm employment status and verify the declared income of Rs. 59,089.67.",
+      "Request three additional months of bank statements to confirm the recurring EMI debits and to verify the actual debt amount of Rs. 72,360.00.",
+      "Obtain a formal loan NOC or debt confirmation from the creditor to confirm the outstanding liability and its repayment schedule.",
+      "Re‑calculate the applicant’s FOIR using the verified income and debt figures to determine if the loan can be approved under the policy limits."
+    ]
+  },
+  "risk_result": {
+    "score": 0.0,
+    "grade": "High",
+    "routing_color": "red",
+    "recommendation": "recommend_reject",
+    "routing_reason": "Flagged for adverse action: 2 major anomaly(ies), policy eligibility failure, low score 0.0.",
+    "requires_human_signoff": true,
+    "factor_breakdown": {
+      "base_score": 100.0,
+      "major_anomalies_deduction": -90.0,
+      "moderate_anomalies_deduction": -0.0,
+      "minor_anomalies_deduction": -0.0,
+      "statement_arithmetic_deduction": -0.0,
+      "eligibility_failure_deduction": -50.0,
+      "final_calculated_score": 0.0,
+      "itemized_anomalies_count": {
+        "major": 2,
+        "moderate": 0,
+        "minor": 0
+      },
+      "qualitative_indicators": {
+        "income_consistency": "Verified",
+        "employment_stability": "Verified",
+        "credit_behaviour": "Good",
+        "emi_burden": "High"
+      }
+    },
+    "reviewer_checklist": [
+      "Contact the applicant’s employer HR or payroll department to confirm employment status and verify the declared income of Rs. 59,089.67.",
+      "Request three additional months of bank statements to confirm the recurring EMI debits and to verify the actual debt amount of Rs. 72,360.00.",
+      "Obtain a formal loan NOC or debt confirmation from the creditor to confirm the outstanding liability and its repayment schedule.",
+      "Re‑calculate the applicant’s FOIR using the verified income and debt figures to determine if the loan can be approved under the policy limits."
+    ],
+    "counterfactual_note": "Would move to GREEN/AMBER if: FOIR were reduced to ≤ 50.0% (currently 148.65%); undisclosed debt of Rs. 60,300.00 is cleared or documented."
+  },
+  "is_llm_fallback": false
+}

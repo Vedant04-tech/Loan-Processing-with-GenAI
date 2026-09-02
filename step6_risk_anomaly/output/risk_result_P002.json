@@ -1,0 +1,94 @@
+{
+  "applicant_id": "P002",
+  "discrepancies": [
+    {
+      "discrepancy_type": "INCOME_MISMATCH",
+      "declared_value": "Rs. 108,462.00",
+      "verified_value": "Rs. 72,591.17",
+      "difference_amount": 35870.83,
+      "difference_percent": 49.41,
+      "evidence_summary": "Declared net income Rs. 108,462.00 differs from verified Rs. 72,591.17 by 49.41%"
+    },
+    {
+      "discrepancy_type": "ELIGIBILITY_FAILURE",
+      "declared_value": "Policy Criteria",
+      "verified_value": "Failed",
+      "difference_amount": null,
+      "difference_percent": null,
+      "evidence_summary": "Income overstatement (49.41%) exceeds 20.0% limit"
+    },
+    {
+      "discrepancy_type": "DOCUMENT_COMPARISON_MISMATCH",
+      "declared_value": "Recommendation: REVIEW",
+      "verified_value": "Status: MISMATCH",
+      "difference_amount": null,
+      "difference_percent": null,
+      "evidence_summary": "Declared income exceeds verified income by more than 10.0%."
+    }
+  ],
+  "anomaly_assessment": {
+    "anomalies": [
+      {
+        "discrepancy_type": "INCOME_MISMATCH",
+        "severity": "Major",
+        "reasoning": "The declared net income exceeds the verified income by 49.41%, which is well above the 20% tolerance threshold set in the FOIR. This large overstatement directly impacts the applicant’s eligibility and indicates a significant data integrity issue.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "ELIGIBILITY_FAILURE",
+        "severity": "Major",
+        "reasoning": "The applicant’s income overstatement leads to a failure of the eligibility criteria. This is a direct violation of underwriting rules and therefore is classified as a Major discrepancy.",
+        "evidence_ids": []
+      },
+      {
+        "discrepancy_type": "DOCUMENT_COMPARISON_MISMATCH",
+        "severity": "Major",
+        "reasoning": "The declared income is flagged as a mismatch with the verified income by more than 10%. This inconsistency suggests potential misreporting or documentation errors, warranting a Major classification.",
+        "evidence_ids": []
+      }
+    ],
+    "underwriting_summary": "Automated underwriting assessment completed.",
+    "suggested_actions": [
+      "Contact the applicant’s employer to verify the stated monthly income and obtain an official salary statement.",
+      "Request the applicant to provide the last three months of bank statements and recent pay slips to corroborate the verified income.",
+      "Ask the applicant to submit a written confirmation or a letter from the employer confirming the current salary and employment status.",
+      "If the applicant is self‑employed, request audited financial statements or tax returns for the past two years to validate income claims."
+    ]
+  },
+  "risk_result": {
+    "score": 0.0,
+    "grade": "High",
+    "routing_color": "red",
+    "recommendation": "recommend_reject",
+    "routing_reason": "Flagged for adverse action: 3 major anomaly(ies), policy eligibility failure, low score 0.0.",
+    "requires_human_signoff": true,
+    "factor_breakdown": {
+      "base_score": 100.0,
+      "major_anomalies_deduction": -135.0,
+      "moderate_anomalies_deduction": -0.0,
+      "minor_anomalies_deduction": -0.0,
+      "statement_arithmetic_deduction": -0.0,
+      "eligibility_failure_deduction": -50.0,
+      "final_calculated_score": 0.0,
+      "itemized_anomalies_count": {
+        "major": 3,
+        "moderate": 0,
+        "minor": 0
+      },
+      "qualitative_indicators": {
+        "income_consistency": "Variance Detected",
+        "employment_stability": "Verified",
+        "credit_behaviour": "Good",
+        "emi_burden": "Low"
+      }
+    },
+    "reviewer_checklist": [
+      "Contact the applicant’s employer to verify the stated monthly income and obtain an official salary statement.",
+      "Request the applicant to provide the last three months of bank statements and recent pay slips to corroborate the verified income.",
+      "Ask the applicant to submit a written confirmation or a letter from the employer confirming the current salary and employment status.",
+      "If the applicant is self‑employed, request audited financial statements or tax returns for the past two years to validate income claims."
+    ],
+    "counterfactual_note": "Would move to GREEN/AMBER if: income variance is reduced to ≤ 5.0% (currently 49.41%)."
+  },
+  "is_llm_fallback": false
+}
