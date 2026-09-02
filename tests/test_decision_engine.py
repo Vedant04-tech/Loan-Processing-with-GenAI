@@ -117,9 +117,12 @@ class TestRiskAndAnomalyEngine(unittest.TestCase):
 
         risk = calculate_risk_and_routing(income, ob, stmt, elig, classified_anomalies=[])
         self.assertEqual(risk.routing_color, "green")
-        self.assertEqual(risk.recommendation, "auto_approve")
+        self.assertEqual(risk.recommendation, "recommend_approve")
+        self.assertTrue(risk.requires_human_signoff)
         self.assertGreaterEqual(risk.score, 85.0)
         self.assertEqual(risk.grade, "Low")
+        self.assertIn("base_score", risk.factor_breakdown)
+        self.assertGreaterEqual(len(risk.reviewer_checklist), 1)
 
     def test_8_major_anomaly_routing_red(self):
         income = calculate_verified_income(150000, [{"extracted": {"net_pay": 80000}}], [{"amount": 80000, "category": "salary_credit"}])
@@ -133,9 +136,12 @@ class TestRiskAndAnomalyEngine(unittest.TestCase):
         ]
         risk = calculate_risk_and_routing(income, ob, stmt, elig, classified_anomalies=anomalies)
         self.assertEqual(risk.routing_color, "red")
-        self.assertEqual(risk.recommendation, "reject")
+        self.assertEqual(risk.recommendation, "recommend_reject")
+        self.assertTrue(risk.requires_human_signoff)
         self.assertLess(risk.score, 50.0)
         self.assertEqual(risk.grade, "High")
+        self.assertIsNotNone(risk.counterfactual_note)
+        self.assertIn("Would move to GREEN/AMBER", risk.counterfactual_note)
 
     def test_9_llm_fallback_resilience(self):
         income = calculate_verified_income(100000, [], [])
@@ -154,6 +160,7 @@ class TestRiskAndAnomalyEngine(unittest.TestCase):
         self.assertIsInstance(assessment, AnomalyAssessment)
         self.assertEqual(len(assessment.anomalies), 1)
         self.assertEqual(assessment.anomalies[0].discrepancy_type, "INCOME_MISMATCH")
+        self.assertGreaterEqual(len(assessment.suggested_actions), 1)
 
     def test_10_step4_identity_discrepancy_integration(self):
         income = calculate_verified_income(100000, [{"extracted": {"net_pay": 100000}}], [{"amount": 100000, "category": "salary_credit"}])
@@ -260,10 +267,58 @@ class TestRiskAndAnomalyEngine(unittest.TestCase):
         risk = calculate_risk_and_routing(income, ob, stmt, elig, classified_anomalies=[], step4_result=step4_rejected)
         self.assertNotEqual(risk.routing_color, "green")
         self.assertEqual(risk.routing_color, "red")
-        self.assertEqual(risk.recommendation, "reject")
+        self.assertEqual(risk.recommendation, "recommend_reject")
+        self.assertTrue(risk.requires_human_signoff)
+
+    def test_15_missing_document_handling(self):
+        # When bank statement is missing, validate_statement_arithmetic returns status MISSING
+        stmt = validate_statement_arithmetic(0, 0, 0, 0, is_provided=False)
+        self.assertFalse(stmt.is_valid)
+        self.assertEqual(stmt.status, "MISSING")
+        self.assertIn("not provided", stmt.message)
+
+        # Discrepancy detector flags MISSING_DOCUMENT
+        app_data = {"applicants": [{"full_name": "Test"}], "documents": [{"doc_type": "PAYSLIP"}]}
+        income = calculate_verified_income(50000, [{"extracted": {"net_pay": 50000}}], [])
+        ob = calculate_obligations([], [], 50000.0)
+        elig = check_eligibility(50000.0, 10.0, 0.0, 0.0)
+        discs = detect_discrepancies(app_data, income, ob, stmt, elig)
+        missing = [d for d in discs if d.discrepancy_type == "MISSING_DOCUMENT"]
+        self.assertGreaterEqual(len(missing), 1)
+
+    def test_16_quantified_factor_breakdown_and_checklist(self):
+        income = calculate_verified_income(100000, [{"extracted": {"net_pay": 100000}}], [{"amount": 100000, "category": "salary_credit"}])
+        ob = calculate_obligations([], [], 100000.0)
+        stmt = validate_statement_arithmetic(10000, 10000, 5000, 15000)
+        elig = check_eligibility(100000.0, 10.0, 0.0, 0.0)
+        anomalies = [
+            {"discrepancy_type": "INCOME_MISMATCH", "severity": "Major", "reasoning": "Test major"},
+            {"discrepancy_type": "EMPLOYMENT_MISMATCH", "severity": "Moderate", "reasoning": "Test mod"}
+        ]
+        risk = calculate_risk_and_routing(income, ob, stmt, elig, classified_anomalies=anomalies)
+        fb = risk.factor_breakdown
+        self.assertEqual(fb["base_score"], 100.0)
+        self.assertEqual(fb["major_anomalies_deduction"], -45.0)
+        self.assertEqual(fb["moderate_anomalies_deduction"], -25.0)
+        self.assertEqual(fb["final_calculated_score"], 30.0)
+        self.assertTrue(risk.requires_human_signoff)
+        self.assertGreaterEqual(len(risk.reviewer_checklist), 1)
+
+    def test_17_human_override_schema(self):
+        from database.models import HumanOverride
+        override = HumanOverride(
+            application_ref="P002",
+            human_decision="APPROVED",
+            override_reason="Collateral pledge of Rs. 10 Lakhs provided to mitigate high FOIR.",
+            overridden_by="senior_underwriter_42",
+            original_recommendation="recommend_reject",
+        )
+        self.assertEqual(override.human_decision, "APPROVED")
+        self.assertEqual(override.overridden_by, "senior_underwriter_42")
 
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
