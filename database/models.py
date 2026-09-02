@@ -49,6 +49,11 @@ class Application(BaseModel):
     routing: dict[str, Any] = Field(default_factory=lambda: {"color": None, "reason": None})
     risk: dict[str, Any] = Field(default_factory=dict)
     financials: dict[str, Any] = Field(default_factory=dict)
+    step4_comparison: Optional[dict[str, Any]] = None
+    step5_calculation: Optional[dict[str, Any]] = None
+    step6_risk_anomaly: Optional[dict[str, Any]] = None
+    step5_and_6_combined: Optional[dict[str, Any]] = None
+    full_pipeline_result: Optional[dict[str, Any]] = None
     applicants: list[Applicant] = Field(default_factory=list)
     documents: list[DocumentMetadata] = Field(default_factory=list)
     cross_checks: list[CrossCheck] = Field(default_factory=list)

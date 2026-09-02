@@ -82,6 +82,29 @@ def main():
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(step6_res.model_dump_json(indent=2))
 
+            # Persist to MongoDB
+            try:
+                from database.db_config import get_db
+                from database import crud
+                db = get_db()
+                crud.update_step4_comparison(db, application_ref=case_id, comparison_data=step4_res.model_dump())
+                crud.save_step5_and_6_combined(
+                    db,
+                    application_ref=case_id,
+                    step5_data=step5_res.model_dump(),
+                    step6_data=step6_res.model_dump(),
+                    summary_data={
+                        "risk_score": step6_res.risk_result.score,
+                        "risk_grade": step6_res.risk_result.grade,
+                        "recommendation": step6_res.risk_result.recommendation,
+                        "routing_color": step6_res.risk_result.routing_color,
+                        "discrepancies_count": len(step6_res.discrepancies),
+                    }
+                )
+                print(f"    [DB] Saved to MongoDB (step4_comparison, step5_and_6_results)")
+            except Exception as db_err:
+                print(f"    [DB NOTE] MongoDB writeback skipped/failed: {db_err}")
+
             r = step6_res.risk_result
             print(f"    [OK] Routing:        {r.routing_color.upper()} ({r.recommendation})")
             print(f"         Score:          {r.score}/100 ({r.grade}) | Human Sign-off: {r.requires_human_signoff}")

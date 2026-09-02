@@ -150,9 +150,87 @@ def run_pipeline(
     # -------------------------------------------------------------
     # 4. MongoDB Atlas Writeback & Audit Logging
     # -------------------------------------------------------------
+    step5_data = step5_result.model_dump()
+    step6_data = step6_result.model_dump()
+    step4_data = step4_result.model_dump()
+
+    status_map = {"green": "approved", "amber": "review", "red": "rejected"}
+    pipeline_res = PipelineResult(
+        application_ref=application_ref,
+        status=status_map.get(risk.routing_color, "review"),
+        routing_color=risk.routing_color,
+        recommendation=risk.recommendation,
+        requires_human_signoff=risk.requires_human_signoff,
+        risk_score=risk.score,
+        risk_grade=risk.grade,
+        routing_reason=risk.routing_reason,
+        factor_breakdown=risk.factor_breakdown,
+        reviewer_checklist=risk.reviewer_checklist,
+        counterfactual_note=risk.counterfactual_note,
+        income_metrics=inc,
+        obligation_metrics=ob,
+        statement_validation=stmt,
+        eligibility_result=elig,
+        discrepancies=discrepancies,
+        is_llm_fallback=is_fallback,
+        underwriting_summary=anomaly_assessment.underwriting_summary,
+    )
+
     if db is not None:
         try:
-            # 4.1 Update Financials
+            # 4.1 Save Step 5 & 6 Combined Results
+            step5_and_6_summary = {
+                "verified_monthly_income": inc.verified_monthly_income,
+                "total_existing_emis": ob.total_existing_emis,
+                "proposed_emi": ob.proposed_emi,
+                "foir_percentage": ob.foir_percentage,
+                "disposable_income": ob.disposable_income,
+                "statement_validation_status": stmt.status,
+                "eligibility_passed": elig.passed,
+                "eligibility_reasons": elig.reasons,
+                "risk_score": risk.score,
+                "risk_grade": risk.grade,
+                "recommendation": risk.recommendation,
+                "routing_color": risk.routing_color,
+                "routing_reason": risk.routing_reason,
+                "requires_human_signoff": risk.requires_human_signoff,
+                "discrepancies_count": len(discrepancies),
+                "is_llm_fallback": is_fallback,
+            }
+            crud.save_step5_and_6_combined(
+                db,
+                application_ref=application_ref,
+                step5_data=step5_data,
+                step6_data=step6_data,
+                summary_data=step5_and_6_summary,
+            )
+
+            # 4.2 Save Full Pipeline Combined Result
+            full_pipeline_payload = {
+                "application_ref": application_ref,
+                "status": pipeline_res.status,
+                "routing_color": pipeline_res.routing_color,
+                "recommendation": pipeline_res.recommendation,
+                "requires_human_signoff": pipeline_res.requires_human_signoff,
+                "risk_score": pipeline_res.risk_score,
+                "risk_grade": pipeline_res.risk_grade,
+                "routing_reason": pipeline_res.routing_reason,
+                "factor_breakdown": pipeline_res.factor_breakdown,
+                "reviewer_checklist": pipeline_res.reviewer_checklist,
+                "counterfactual_note": pipeline_res.counterfactual_note,
+                "step4_comparison": step4_data,
+                "step5_calculation": step5_data,
+                "step6_risk_anomaly": step6_data,
+                "pipeline_result": pipeline_res.model_dump(),
+                "execution_timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+            crud.save_full_pipeline_result(
+                db,
+                application_ref=application_ref,
+                pipeline_payload=full_pipeline_payload,
+            )
+
+            # 4.3 Update Financials (legacy / UI compatibility)
             fin_payload = {
                 "verified_monthly_income": inc.verified_monthly_income,
                 "total_existing_emis": ob.total_existing_emis,
@@ -165,7 +243,7 @@ def run_pipeline(
             }
             crud.update_financials(db, application_ref, fin_payload)
 
-            # 4.2 Save Cross-Check records
+            # 4.4 Save Cross-Check records
             db.applications.update_one({"application_ref": application_ref}, {"$set": {"cross_checks": []}})
             for disc in discrepancies:
                 sev = "minor"
@@ -189,7 +267,7 @@ def run_pipeline(
                     },
                 )
 
-            # 4.3 Update Risk & Factors
+            # 4.5 Update Risk & Factors
             crud.update_risk(
                 db,
                 application_ref,
@@ -202,7 +280,7 @@ def run_pipeline(
                 counterfactual_note=risk.counterfactual_note,
             )
 
-            # 4.4 Update Routing
+            # 4.6 Update Routing
             crud.update_routing(
                 db,
                 application_ref,
@@ -210,8 +288,7 @@ def run_pipeline(
                 reason=risk.routing_reason,
             )
 
-
-            # 4.5 Audit Log Entry
+            # 4.7 Audit Log Entry
             now = datetime.now(timezone.utc)
             db.audit_logs.insert_one({
                 "application_ref": application_ref,
@@ -232,27 +309,7 @@ def run_pipeline(
         except Exception as e:
             print(f"[WARN] Database writeback encountered an error: {e}")
 
-    status_map = {"green": "approved", "amber": "review", "red": "rejected"}
-    return PipelineResult(
-        application_ref=application_ref,
-        status=status_map.get(risk.routing_color, "review"),
-        routing_color=risk.routing_color,
-        recommendation=risk.recommendation,
-        requires_human_signoff=risk.requires_human_signoff,
-        risk_score=risk.score,
-        risk_grade=risk.grade,
-        routing_reason=risk.routing_reason,
-        factor_breakdown=risk.factor_breakdown,
-        reviewer_checklist=risk.reviewer_checklist,
-        counterfactual_note=risk.counterfactual_note,
-        income_metrics=inc,
-        obligation_metrics=ob,
-        statement_validation=stmt,
-        eligibility_result=elig,
-        discrepancies=discrepancies,
-        is_llm_fallback=is_fallback,
-        underwriting_summary=anomaly_assessment.underwriting_summary,
-    )
+    return pipeline_res
 
 
 # Backward-compatible alias

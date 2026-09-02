@@ -64,6 +64,19 @@ def main():
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(result.model_dump_json(indent=2))
 
+            # Persist to MongoDB
+            try:
+                from datetime import datetime, timezone
+                from database.db_config import get_db
+                db = get_db()
+                db.applications.update_one(
+                    {"application_ref": case_id},
+                    {"$set": {"step5_calculation": result.model_dump(), "updated_at": datetime.now(timezone.utc)}}
+                )
+                print(f"    [DB] Saved to MongoDB (applications.step5_calculation)")
+            except Exception as db_err:
+                print(f"    [DB NOTE] MongoDB writeback skipped/failed: {db_err}")
+
             print(f"    [OK] Verified Income: Rs. {result.income_metrics.verified_monthly_income:,.2f} (Variance: {result.income_metrics.income_variance_percent}%)")
             print(f"         FOIR / DTI:      {result.obligation_metrics.foir_percentage}% | Statement Math: {result.statement_validation.status}")
             print(f"         Eligibility:     {result.eligibility_result.status} ({', '.join(result.eligibility_result.reasons)})")

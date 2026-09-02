@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 from pymongo.database import Database
 
@@ -59,16 +59,89 @@ def update_financials(db: Database, application_ref: str, financials_data: dict)
 
 
 def update_step4_comparison(db: Database, application_ref: str, comparison_data: dict):
-    """Saves Step 4 comparison results to application document and a separate comparison_results collection."""
+    """Saves Step 4 comparison results to application document and comparison_results collection."""
+    now = datetime.now(timezone.utc)
     db.applications.update_one(
         {"application_ref": application_ref},
-        {"$set": {"step4_comparison": comparison_data, "updated_at": datetime.utcnow()}}
+        {"$set": {"step4_comparison": comparison_data, "updated_at": now}}
     )
-    return db.comparison_results.update_one(
+    db.comparison_results.update_one(
         {"application_ref": application_ref},
-        {"$set": {**comparison_data, "updated_at": datetime.utcnow()}},
+        {"$set": {**comparison_data, "application_ref": application_ref, "updated_at": now}},
         upsert=True
     )
+    return db.step4_results.update_one(
+        {"application_ref": application_ref},
+        {"$set": {**comparison_data, "application_ref": application_ref, "updated_at": now}},
+        upsert=True
+    )
+
+
+def save_step5_and_6_combined(
+    db: Database,
+    application_ref: str,
+    step5_data: dict,
+    step6_data: dict,
+    summary_data: Optional[dict] = None,
+):
+    """Saves combined Step 5 (Calculations) and Step 6 (Risk & Anomaly) results to MongoDB."""
+    now = datetime.now(timezone.utc)
+    combined_doc = {
+        "application_ref": application_ref,
+        "step5_calculation": step5_data,
+        "step6_risk_anomaly": step6_data,
+        "summary": summary_data or {},
+        "updated_at": now,
+    }
+    # 1. Update application document
+    db.applications.update_one(
+        {"application_ref": application_ref},
+        {
+            "$set": {
+                "step5_calculation": step5_data,
+                "step6_risk_anomaly": step6_data,
+                "step5_and_6_combined": combined_doc,
+                "updated_at": now,
+            }
+        }
+    )
+    # 2. Upsert into dedicated step5_and_6_results collection
+    return db.step5_and_6_results.update_one(
+        {"application_ref": application_ref},
+        {"$set": combined_doc},
+        upsert=True,
+    )
+
+
+def save_full_pipeline_result(
+    db: Database,
+    application_ref: str,
+    pipeline_payload: dict,
+):
+    """Saves the complete, combined full-pipeline execution result to MongoDB."""
+    now = datetime.now(timezone.utc)
+    full_doc = {
+        **pipeline_payload,
+        "application_ref": application_ref,
+        "updated_at": now,
+    }
+    # 1. Update application document with full_pipeline_result
+    db.applications.update_one(
+        {"application_ref": application_ref},
+        {
+            "$set": {
+                "full_pipeline_result": full_doc,
+                "updated_at": now,
+            }
+        }
+    )
+    # 2. Upsert into dedicated full_pipeline_results collection
+    return db.full_pipeline_results.update_one(
+        {"application_ref": application_ref},
+        {"$set": full_doc},
+        upsert=True,
+    )
+
 
 
 def get_step4_comparison(db: Database, application_ref: str) -> dict | None:

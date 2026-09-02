@@ -58,6 +58,16 @@ def main():
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(result.model_dump_json(indent=2))
 
+            # Persist to MongoDB
+            try:
+                from database.db_config import get_db
+                from database import crud
+                db = get_db()
+                crud.update_step4_comparison(db, application_ref=case_id, comparison_data=result.model_dump())
+                print(f"    [DB] Saved to MongoDB (applications & comparison_results)")
+            except Exception as db_err:
+                print(f"    [DB NOTE] MongoDB writeback skipped/failed: {db_err}")
+
             print(f"    [OK] Status: {result.overall_status} | Risk: {result.risk_level} | Rec: {result.recommendation}")
             print(f"    Saved: {output_file}\n")
             successful += 1
