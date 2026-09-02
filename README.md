@@ -6,7 +6,12 @@
 [![MongoDB Atlas](https://img.shields.io/badge/Database-MongoDB%20Atlas-forestgreen?logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
 [![LangChain](https://img.shields.io/badge/Orchestration-LangChain%20%2F%20Groq-coral?logo=langchain&logoColor=white)](https://langchain.com)
 [![Pydantic v2](https://img.shields.io/badge/Validation-Pydantic%20v2-e92063?logo=pydantic&logoColor=white)](https://docs.pydantic.dev)
+<<<<<<< HEAD
 [![Test Suite](https://img.shields.io/badge/Tests-14%2F14%20Passing-brightgreen?logo=checkmarx&logoColor=white)](tests/test_decision_engine.py)
+=======
+[![Test Suite](https://img.shields.io/badge/Tests-14%2F14%20Passing-brightgreen?logo=checkmarx&logoColor=white)](file:///g:/Inventer's%20Zone/MyProjects/Cognizent/My%20Part/tests/test_decision_engine.py)
+
+>>>>>>> 120fcbf3f6b0fc4ddc39754097e91a188b618296
 [![Architecture](https://img.shields.io/badge/Architecture-Deterministic%20%2B%20GenAI%20Hybrid-purple)](#system-architecture)
 
 **Automated Multi-Document Cross-Comparison (Step 4), Deterministic Financial Calculations (Step 5), and GenAI Anomaly/Risk Routing (Step 6) for the TRACE Loan Origination Platform.**
