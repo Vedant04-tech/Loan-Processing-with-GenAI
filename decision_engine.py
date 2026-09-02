@@ -93,9 +93,21 @@ def run_decision_pipeline(
     financials = application.get("financials") or {}
     loan_req = financials.get("loan_request") or {}
 
-    declared_inc = float(loan_ext.get("net_monthly") or loan_ext.get("gross_monthly") or loan_req.get("declared_net_monthly") or 100000.0)
+    # Extract declared income: Priority is given to LOAN_APPLICATION net_monthly,
+    # then gross_monthly, then top-level application financial claims.
+    # If entirely omitted in a malformed or partial mock payload, defaults to 0.0
+    # so variance checks can explicitly flag the missing declaration.
+    declared_inc_val = (
+        loan_ext.get("net_monthly")
+        or loan_ext.get("gross_monthly")
+        or loan_req.get("declared_net_monthly")
+        or financials.get("declared_net_monthly")
+        or 0.0
+    )
+    declared_inc = float(declared_inc_val)
     declared_libs = loan_ext.get("liabilities") or loan_req.get("declared_liabilities") or []
     proposed_emi = float(financials.get("proposed_emi") or 0.0)
+
 
     bank_ext = (bank_stmts[0].get("extracted") or {}) if bank_stmts else {}
 
@@ -139,6 +151,7 @@ def run_decision_pipeline(
         eligibility_result=eligibility_result,
         extracted_fields=evidence,
         step4_result=step4_result,
+        policy_name=policy_name,
     )
 
     anomaly_assessment, is_fallback = classify_anomalies_with_llm(
@@ -160,7 +173,9 @@ def run_decision_pipeline(
         classified_anomalies=classified_list,
         is_llm_fallback=is_fallback,
         policy_name=policy_name,
+        step4_result=step4_result,
     )
+
 
     # 4. MongoDB Writeback
     crud.update_financials(db, application_ref, {
