@@ -172,7 +172,98 @@ class TestRiskAndAnomalyEngine(unittest.TestCase):
         self.assertEqual(len(id_disc), 1)
         self.assertIn("NAME", id_disc[0].evidence_summary)
 
+    def test_11_dynamic_policy_deduction_weights(self):
+        from unittest.mock import patch
+        income = calculate_verified_income(100000, [{"extracted": {"net_pay": 100000}}], [{"amount": 100000, "category": "salary_credit"}])
+        ob = calculate_obligations([], [], 100000.0)
+        stmt = validate_statement_arithmetic(10000, 10000, 5000, 15000)
+        elig = check_eligibility(100000.0, 10.0, 0.0, 0.0)
+        anomalies = [{"discrepancy_type": "INCOME_MISMATCH", "severity": "Major", "reasoning": "Test"}]
+
+        # Standard policy deduction: 45.0 -> score 55.0
+        standard_res = calculate_risk_and_routing(income, ob, stmt, elig, classified_anomalies=anomalies)
+        self.assertEqual(standard_res.score, 55.0)
+
+        # Custom policy deduction: major deduction = 5.0 -> score 95.0
+        custom_policy = {
+            "scoring_weights": {
+                "base_score": 100.0,
+                "major_anomaly_deduction": 5.0,
+                "moderate_anomaly_deduction": 3.0,
+                "minor_anomaly_deduction": 1.0,
+                "arithmetic_mismatch_deduction": 10.0,
+                "eligibility_failure_deduction": 20.0,
+            },
+            "routing_thresholds": {"green_min_score": 80.0, "amber_min_score": 50.0},
+        }
+        with patch("step6_risk_anomaly.risk_rules.load_policy", return_value=custom_policy):
+            custom_res = calculate_risk_and_routing(income, ob, stmt, elig, classified_anomalies=anomalies)
+            self.assertEqual(custom_res.score, 95.0)
+
+    def test_12_policy_loader_fallback_validity(self):
+        from policies.policy_loader import load_policy
+        fallback = load_policy("non_existent_policy_name_12345")
+        self.assertIsInstance(fallback, dict)
+        self.assertIn("statement", fallback)
+        self.assertIs(fallback["statement"]["require_arithmetic_balance_match"], True)
+        self.assertIn("scoring_weights", fallback)
+        self.assertEqual(fallback["scoring_weights"]["major_anomaly_deduction"], 45.0)
+
+    def test_13_step4_declared_emi_extraction(self):
+        import importlib
+        step4_pipeline = importlib.import_module("step4_Document comparison.app.pipeline")
+        payload = {
+            "_id": "TEST_APP_01",
+            "documents": [
+                {
+                    "doc_type": "LOAN_APPLICATION",
+                    "extracted": {
+                        "name": "Test User",
+                        "net_monthly": 100000,
+                        "liabilities": [
+                            {"lender": "HDFC", "emi_amount": 8000},
+                            {"lender": "SBI", "emi_amount": 4500},
+                        ],
+                    },
+                },
+                {
+                    "doc_type": "BANK_STATEMENT",
+                    "extracted": {
+                        "opening_balance": 10000, "closing_balance": 20000, "total_credits": 100000, "total_debits": 90000,
+                        "transactions": [
+                            {"category": "emi_debit", "amount": -12500},
+                            {"category": "salary_credit", "amount": 100000},
+                        ],
+                    },
+                },
+            ],
+        }
+        res = step4_pipeline.build_pipeline_result(payload)
+        self.assertEqual(res.declared_emi, 12500.0)
+        self.assertEqual(res.detected_emi, 12500.0)
+        self.assertEqual(res.liability_status, "MATCH")
+
+    def test_14_unified_step4_step6_risk_consistency(self):
+        income = calculate_verified_income(100000, [{"extracted": {"net_pay": 100000}}], [{"amount": 100000, "category": "salary_credit"}])
+        ob = calculate_obligations([], [], 100000.0)
+        stmt = validate_statement_arithmetic(10000, 10000, 5000, 15000)
+        elig = check_eligibility(100000.0, 10.0, 0.0, 0.0)
+
+        # If Step 4 rejected the applicant due to document discrepancy
+        step4_rejected = {
+            "identity_status": "MISMATCH",
+            "overall_status": "MISMATCH",
+            "risk_level": "HIGH",
+            "recommendation": "REJECT",
+            "audit_notes": "Severe document tampering / identity mismatch detected.",
+        }
+        risk = calculate_risk_and_routing(income, ob, stmt, elig, classified_anomalies=[], step4_result=step4_rejected)
+        self.assertNotEqual(risk.routing_color, "green")
+        self.assertEqual(risk.routing_color, "red")
+        self.assertEqual(risk.recommendation, "reject")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
