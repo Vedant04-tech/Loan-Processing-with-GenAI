@@ -21,10 +21,28 @@ def load_policy(policy_name: str = "personal_loan") -> dict:
 
     # Safe default fallback
     return {
-        "foir": {"standard_threshold_percent": 50.0, "max_acceptable_percent": 60.0},
-        "income": {"min_monthly_net_income": 25000.0, "max_acceptable_variance_percent": 10.0},
-        "liabilities": {"max_allowed_undisclosed_emi_gap": 2000.0},
-        "statement": {"require_arithmetic_balance_match": true, "max_balance_reconciliation_error": 5.0},
+        "foir": {
+            "standard_threshold_percent": 50.0,
+            "max_acceptable_percent": 60.0,
+            "high_risk_threshold_percent": 65.0,
+        },
+        "income": {
+            "min_monthly_net_income": 25000.0,
+            "max_acceptable_variance_percent": 10.0,
+            "severe_variance_percent": 20.0,
+        },
+        "liabilities": {
+            "max_allowed_undisclosed_emi_gap": 2000.0,
+            "major_undisclosed_threshold": 10000.0,
+        },
+        "employment": {
+            "min_experience_months": 6,
+            "require_matching_employer": True,
+        },
+        "statement": {
+            "require_arithmetic_balance_match": True,
+            "max_balance_reconciliation_error": 5.0,
+        },
         "scoring_weights": {
             "base_score": 100.0,
             "minor_anomaly_deduction": 10.0,
@@ -35,3 +53,4 @@ def load_policy(policy_name: str = "personal_loan") -> dict:
         },
         "routing_thresholds": {"green_min_score": 80.0, "amber_min_score": 50.0},
     }
+
