@@ -232,10 +232,29 @@ python main.py P003
 python main.py --all
 ```
 
-### 4. Run Complete Unit Test Suite (17 Tests)
+### 4. Run via Docker Container
+Build and execute the single containerized bundle:
+```bash
+# Build Docker image
+docker build -t trace-underwriting-platform:latest .
+
+# Run benchmark inside Docker
+docker run --rm --env-file .env trace-underwriting-platform:latest --all
+
+# Run specific applicant inside Docker
+docker run --rm --env-file .env trace-underwriting-platform:latest P003
+```
+
+Alternatively using **Docker Compose**:
+```bash
+docker compose up --build
+```
+
+### 5. Run Complete Unit Test Suite (17 Tests)
 ```bash
 python -m unittest tests.test_decision_engine
 ```
+
 
 
 ---

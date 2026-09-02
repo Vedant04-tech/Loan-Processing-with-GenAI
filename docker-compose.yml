@@ -1,0 +1,14 @@
+services:
+  trace-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: trace-underwriting-platform:latest
+    container_name: trace_decision_engine
+    env_file:
+      - .env
+    volumes:
+      - ./step4_Document comparison/output:/app/step4_Document comparison/output
+      - ./step5_calculation/output:/app/step5_calculation/output
+      - ./step6_risk_anomaly/output:/app/step6_risk_anomaly/output
+    command: ["--all"]
