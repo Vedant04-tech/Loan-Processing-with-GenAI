@@ -33,6 +33,7 @@ class PipelineResult(BaseModel):
     status: str
     routing_color: str
     recommendation: str
+    requires_human_signoff: bool = True
     risk_score: float
     risk_grade: str
     income_metrics: IncomeMetrics
@@ -41,9 +42,12 @@ class PipelineResult(BaseModel):
     eligibility_result: EligibilityResult
     discrepancies: list[Discrepancy]
     anomaly_assessment: AnomalyAssessment
+    reviewer_checklist: list[str] = Field(default_factory=list)
+    counterfactual_note: Optional[str] = None
     is_llm_fallback: bool
     underwriting_summary: str
     executed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 
 
 def run_decision_pipeline(
@@ -132,6 +136,7 @@ def run_decision_pipeline(
         total_credits=float(bank_ext.get("total_credits") or 0.0),
         total_debits=float(bank_ext.get("total_debits") or 0.0),
         closing_balance=float(bank_ext.get("closing_balance") or 0.0),
+        is_provided=bool(bank_stmts),
     )
 
     eligibility_result = check_eligibility(
@@ -174,8 +179,8 @@ def run_decision_pipeline(
         is_llm_fallback=is_fallback,
         policy_name=policy_name,
         step4_result=step4_result,
+        suggested_actions=anomaly_assessment.suggested_actions,
     )
-
 
     # 4. MongoDB Writeback
     crud.update_financials(db, application_ref, {
@@ -205,12 +210,28 @@ def run_decision_pipeline(
             "checked_at": datetime.now(timezone.utc),
         })
 
-    crud.update_risk(db, application_ref, score=risk_result.score, grade=risk_result.grade, recommendation=risk_result.recommendation, factors=risk_result.factor_breakdown)
+    crud.update_risk(
+        db,
+        application_ref,
+        score=risk_result.score,
+        grade=risk_result.grade,
+        recommendation=risk_result.recommendation,
+        factors=risk_result.factor_breakdown,
+        requires_human_signoff=risk_result.requires_human_signoff,
+        reviewer_checklist=risk_result.reviewer_checklist,
+        counterfactual_note=risk_result.counterfactual_note,
+    )
     crud.update_routing(db, application_ref, color=risk_result.routing_color, reason=risk_result.routing_reason)
 
     crud.log_audit_event(db, application_ref=application_ref, actor="pipeline:decision_engine", action=f"routed_{risk_result.routing_color}", detail={
-        "risk_score": risk_result.score, "risk_grade": risk_result.grade, "foir": obligation_metrics.foir_percentage,
-        "anomalies_count": len(classified_list), "discrepancies_count": len(discrepancies), "is_llm_fallback": is_fallback,
+        "risk_score": risk_result.score,
+        "risk_grade": risk_result.grade,
+        "foir": obligation_metrics.foir_percentage,
+        "recommendation": risk_result.recommendation,
+        "requires_human_signoff": True,
+        "anomalies_count": len(classified_list),
+        "discrepancies_count": len(discrepancies),
+        "is_llm_fallback": is_fallback,
     })
 
     return PipelineResult(
@@ -218,6 +239,7 @@ def run_decision_pipeline(
         status="approved" if risk_result.routing_color == "green" else ("review" if risk_result.routing_color == "amber" else "rejected"),
         routing_color=risk_result.routing_color,
         recommendation=risk_result.recommendation,
+        requires_human_signoff=risk_result.requires_human_signoff,
         risk_score=risk_result.score,
         risk_grade=risk_result.grade,
         income_metrics=income_metrics,
@@ -226,6 +248,8 @@ def run_decision_pipeline(
         eligibility_result=eligibility_result,
         discrepancies=discrepancies,
         anomaly_assessment=anomaly_assessment,
+        reviewer_checklist=risk_result.reviewer_checklist,
+        counterfactual_note=risk_result.counterfactual_note,
         is_llm_fallback=is_fallback,
         underwriting_summary=anomaly_assessment.underwriting_summary,
     )
@@ -247,9 +271,13 @@ if __name__ == "__main__":
     print(f"Running Decision Pipeline for: {app_id}")
     res = run_decision_pipeline(app_id)
     print(f"Decision: {res.routing_color.upper()} ({res.recommendation})")
+    print(f"Requires Human Sign-off: {res.requires_human_signoff}")
     print(f"Risk Score: {res.risk_score}/100 ({res.risk_grade})")
     print(f"Verified Income: Rs. {res.income_metrics.verified_monthly_income:,.2f}")
     print(f"FOIR: {res.obligation_metrics.foir_percentage}%")
     print(f"Discrepancies: {len(res.discrepancies)}")
+    print(f"Checklist: {res.reviewer_checklist}")
+    print(f"Counterfactual Note: {res.counterfactual_note}")
     print(f"Summary: {res.underwriting_summary}")
+
 
