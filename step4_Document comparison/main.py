@@ -12,6 +12,11 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from app.pipeline import build_pipeline_result
+from app.database import (
+    get_all_applications,
+    get_application,
+    update_comparison_result,
+)
 
 load_dotenv()
 
@@ -29,54 +34,101 @@ def load_clean_json(file_path: Path) -> dict:
 
 
 def main():
+    print("=" * 60)
+    print("LOAN APPLICATION COMPARISON ENGINE (STEP 4)")
+    print("=" * 60)
+
     target_arg = sys.argv[1] if len(sys.argv) > 1 else None
 
-    if target_arg and target_arg != "--all":
-        if target_arg.endswith(".json"):
-            input_files = [Path(target_arg)]
-        else:
-            input_files = [INPUT_DIR / f"{target_arg}.json"]
-    else:
-        input_files = sorted(INPUT_DIR.glob("P*.json"))
+    # Option 1: Process from MongoDB if requested or if no argument is passed
+    use_mongo = target_arg in ["--mongo", "-m"] or (target_arg is None)
 
-    if not input_files:
-        print(f"No JSON input files found in '{INPUT_DIR}'")
-        return
-
-    print(f"Found {len(input_files)} document extraction files to compare.\n")
+    applications = []
+    if use_mongo:
+        try:
+            print("\nFetching applications from MongoDB...")
+            applications = get_all_applications()
+            print(f"Found {len(applications)} applications in MongoDB.")
+        except Exception as db_err:
+            print(f"MongoDB connection note: {db_err}")
+            applications = []
 
     successful, failed = 0, 0
 
-    for input_file in input_files:
-        print(f"--> Processing {input_file.name}...")
-        try:
-            payload = load_clean_json(input_file)
-            result = build_pipeline_result(payload)
-            case_id = payload.get("_id", input_file.stem)
+    if applications and target_arg != "--local":
+        for payload in applications:
+            app_id = str(payload.get("_id", payload.get("application_id", "UNKNOWN")))
+            print("\n" + "=" * 60)
+            print(f"Processing MongoDB application: {app_id}")
+            print("=" * 60)
 
-            output_file = OUTPUT_DIR / f"comparison_result_{case_id}.json"
-            with open(output_file, "w", encoding="utf-8") as f:
-                f.write(result.model_dump_json(indent=2))
-
-            # Persist to MongoDB
             try:
-                from database.db_config import get_db
-                from database import crud
-                db = get_db()
-                crud.update_step4_comparison(db, application_ref=case_id, comparison_data=result.model_dump())
-                print(f"    [DB] Saved to MongoDB (applications & comparison_results)")
-            except Exception as db_err:
-                print(f"    [DB NOTE] MongoDB writeback skipped/failed: {db_err}")
+                result = build_pipeline_result(payload)
+                result_dict = result.model_dump()
 
-            print(f"    [OK] Status: {result.overall_status} | Risk: {result.risk_level} | Rec: {result.recommendation}")
-            print(f"    Saved: {output_file}\n")
-            successful += 1
+                try:
+                    update_comparison_result(app_id, result_dict)
+                    print("  [DB] Comparison result stored in MongoDB.")
+                except Exception as db_save_err:
+                    print(f"  [DB NOTE] Could not update MongoDB: {db_save_err}")
 
-        except Exception as e:
-            print(f"    [ERROR] Failed to process {input_file.name}: {e}\n")
-            failed += 1
+                output_file = OUTPUT_DIR / f"comparison_result_{app_id}.json"
+                with open(output_file, "w", encoding="utf-8") as f:
+                    f.write(result.model_dump_json(indent=2))
 
-    print(f"Completed: {successful} processed successfully, {failed} failed.")
+                print(f"  [OK] Saved locally: {output_file.name}")
+                print(f"  Overall Status: {result.overall_status} | Risk: {result.risk_level} | Recommendation: {result.recommendation}")
+                successful += 1
+            except Exception as e:
+                print(f"  [ERROR] Failed to process application {app_id}: {e}")
+                failed += 1
+
+    else:
+        # Option 2: Process local JSON files
+        if target_arg and target_arg not in ["--all", "--local", "--mongo"]:
+            if target_arg.endswith(".json"):
+                input_files = [Path(target_arg)]
+            else:
+                input_files = [INPUT_DIR / f"{target_arg}.json"]
+        else:
+            input_files = sorted(INPUT_DIR.glob("P*.json"))
+
+        if not input_files:
+            print(f"No JSON input files found in '{INPUT_DIR}'")
+            return
+
+        print(f"\nProcessing {len(input_files)} local document extraction file(s)...\n")
+
+        for input_file in input_files:
+            print(f"--> Processing {input_file.name}...")
+            try:
+                payload = load_clean_json(input_file)
+                result = build_pipeline_result(payload)
+                case_id = str(payload.get("_id", input_file.stem))
+
+                output_file = OUTPUT_DIR / f"comparison_result_{case_id}.json"
+                with open(output_file, "w", encoding="utf-8") as f:
+                    f.write(result.model_dump_json(indent=2))
+
+                # Also attempt update to MongoDB if configured
+                try:
+                    update_comparison_result(case_id, result.model_dump())
+                    print("    [DB] Synced to MongoDB.")
+                except Exception:
+                    pass
+
+                print(f"    [OK] Status: {result.overall_status} | Risk: {result.risk_level} | Rec: {result.recommendation}")
+                print(f"    Saved: {output_file.name}\n")
+                successful += 1
+
+            except Exception as e:
+                print(f"    [ERROR] Failed to process {input_file.name}: {e}\n")
+                failed += 1
+
+    print("\n" + "=" * 60)
+    print("PROCESSING COMPLETE")
+    print(f"Successful: {successful} | Failed: {failed}")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
